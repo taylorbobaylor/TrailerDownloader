@@ -35,10 +35,10 @@ namespace TrailerDownloader
 
             services.AddHttpClient();
 
-            // In production, the Angular files will be served from this directory
+            // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
             {
-                configuration.RootPath = "ClientApp/dist";
+                configuration.RootPath = "ClientApp/build";
             });
 
             services.AddScoped<IConfigRepository, ConfigRepository>();
@@ -80,25 +80,18 @@ namespace TrailerDownloader
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller}/{action=Index}/{id?}");
+                endpoints.MapHub<MovieHub>("/moviehub");
             });
 
             app.UseSpa(spa =>
             {
-                // To learn more about options for serving an Angular SPA from ASP.NET Core,
-                // see https://go.microsoft.com/fwlink/?linkid=864501
-
                 spa.Options.SourcePath = "ClientApp";
 
                 if (env.IsDevelopment())
                 {
-                    spa.UseAngularCliServer(npmScript: "start");
+                    // Use this line to serve the React development server
+                    spa.UseProxyToSpaDevelopmentServer("http://localhost:3000");
                 }
-            });
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-                endpoints.MapHub<MovieHub>("/moviehub");
             });
         }
     }
