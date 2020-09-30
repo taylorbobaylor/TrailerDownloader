@@ -36,7 +36,25 @@ namespace TrailerDownloader.Repositories
         {
             List<Movie> movieList = new List<Movie>();
 
-            foreach (string movieDirectory in Directory.GetDirectories(_mediaDirectory))
+            //foreach (string movieDirectory in Directory.GetDirectories(_mediaDirectory))
+            //{
+            //    bool trailerExists = Directory.GetFiles(movieDirectory).Where(name => name.Contains("-Trailer")).Count() > 0;
+            //    string filePath = Directory.GetFiles(movieDirectory).Where(ext => !ext.EndsWith("srt") || !ext.EndsWith("sub") || !ext.EndsWith("sbv") || !ext.Contains("-Trailer")).FirstOrDefault();
+            //    string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(([^\)]+)\)", string.Empty).Trim();
+            //    string year = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"^[^\(]+", string.Empty).Trim().Replace("(", string.Empty).Replace(")", string.Empty);
+
+            //    Movie movieInfo = new Movie
+            //    {
+            //        TrailerExists = trailerExists,
+            //        FilePath = Path.GetDirectoryName(filePath),
+            //        Title = title,
+            //        Year = year
+            //    };
+
+            //    movieList.Add(await GetMovieInfoAsync(movieInfo));
+            //}
+
+            Parallel.ForEach(Directory.GetDirectories(_mediaDirectory), movieDirectory =>
             {
                 bool trailerExists = Directory.GetFiles(movieDirectory).Where(name => name.Contains("-Trailer")).Count() > 0;
                 string filePath = Directory.GetFiles(movieDirectory).Where(ext => !ext.EndsWith("srt") || !ext.EndsWith("sub") || !ext.EndsWith("sbv") || !ext.Contains("-Trailer")).FirstOrDefault();
@@ -51,10 +69,10 @@ namespace TrailerDownloader.Repositories
                     Year = year
                 };
 
-                movieList.Add(await GetMovieInfoAsync(movieInfo));
-            }
+                movieList.Add(GetMovieInfoAsync(movieInfo).Result);
+            });
 
-            return movieList;
+            return movieList.OrderBy(m => m.Title);
         }
 
         private async Task<Movie> GetMovieInfoAsync(Movie movie)

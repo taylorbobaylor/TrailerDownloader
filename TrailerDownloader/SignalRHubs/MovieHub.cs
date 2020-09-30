@@ -11,9 +11,23 @@ namespace TrailerDownloader.SignalRHubs
 {
     public class MovieHub : Hub
     {
-        public async Task<bool> DownloadAllTrailers(IEnumerable<Movie> movieList)
+        public bool DownloadAllTrailers(IEnumerable<Movie> movieList)
         {
-            //Parallel.ForEach(movieList, async movie =>
+            Parallel.ForEach(movieList, async movie =>
+            {
+                if (movie.TrailerExists == false)
+                {
+                    if (DownloadTrailerAsync(movie).Result)
+                    {
+                        movie.TrailerExists = true;
+                    }
+
+                    await Clients.All.SendAsync("downloadAllTrailers", movieList);
+                }
+            });
+
+
+            //foreach (Movie movie in movieList)
             //{
             //    if (movie.TrailerExists == false)
             //    {
@@ -21,17 +35,7 @@ namespace TrailerDownloader.SignalRHubs
             //        movie.TrailerExists = true;
             //        await Clients.All.SendAsync("downloadAllTrailers", movieList);
             //    }
-            //});
-
-            foreach (Movie movie in movieList)
-            {
-                if (movie.TrailerExists == false)
-                {
-                    await DownloadTrailerAsync(movie);
-                    movie.TrailerExists = true;
-                    await Clients.All.SendAsync("downloadAllTrailers", movieList);
-                }
-            }
+            //}
 
             return true;
         }
