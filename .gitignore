@@ -379,6 +379,7 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
 TrailerDownloader/config.json
 
 .DS_STORE
