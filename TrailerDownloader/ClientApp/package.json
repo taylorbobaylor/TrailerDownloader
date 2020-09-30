@@ -1,5 +1,5 @@
 {
-  "name": "client-app",
+  "name": "trailer-downloader-frontend",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
@@ -11,7 +11,7 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/animations": "~10.0.0",
+    "@angular/animations": "^10.0.14",
     "@angular/common": "~10.0.0",
     "@angular/compiler": "~10.0.0",
     "@angular/core": "~10.0.0",
@@ -19,7 +19,10 @@
     "@angular/platform-browser": "~10.0.0",
     "@angular/platform-browser-dynamic": "~10.0.0",
     "@angular/router": "~10.0.0",
+    "@aspnet/signalr": "^1.1.4",
+    "ngx-toastr": "^13.0.0",
     "rxjs": "~6.5.5",
+    "toastr": "^2.1.4",
     "tslib": "^2.0.0",
     "zone.js": "~0.10.3"
   },
