@@ -18,14 +18,15 @@ namespace TrailerDownloader.Repositories
         // Configs from JSON
         private static string _mediaDirectory;
         private static string _apiKey;
+        private static string configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
 
         public TrailerRepository(IHttpClientFactory httpClientFactory)
         {
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
 
-            if (File.Exists($@"{Directory.GetCurrentDirectory()}\config.json"))
+            if (File.Exists(configPath))
             {
-                string jsonConfig = File.ReadAllText($@"{Directory.GetCurrentDirectory()}\config.json");
+                string jsonConfig = File.ReadAllText(configPath);
                 _mediaDirectory = JsonConvert.DeserializeObject<Config>(jsonConfig).MediaDirectory;
                 _apiKey = JsonConvert.DeserializeObject<Config>(jsonConfig).TMDBKey;
             }
