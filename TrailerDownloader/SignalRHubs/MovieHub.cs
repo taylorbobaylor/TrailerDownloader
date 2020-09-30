@@ -66,7 +66,7 @@ namespace TrailerDownloader.SignalRHubs
                 var stream = await youtube.Videos.Streams.GetAsync(streamInfo);
 
                 // Download the stream to file
-                await youtube.Videos.Streams.DownloadAsync(streamInfo, $@"{movie.FilePath}\{movie.Title}-Trailer.{streamInfo.Container}");
+                await youtube.Videos.Streams.DownloadAsync(streamInfo, Path.Combine(movie.FilePath, $"{movie.Title}-Trailer.{streamInfo.Container}"));
 
                 return true;
             }
