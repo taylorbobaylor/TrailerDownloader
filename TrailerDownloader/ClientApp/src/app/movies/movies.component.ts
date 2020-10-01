@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ToastrService } from 'ngx-toastr';
 import { Movie } from '../models/movie';
-import { MovieService } from "../services/movie.service";
 import { SignalrService } from '../services/signalr.service';
 
 @Component({
@@ -11,20 +10,10 @@ import { SignalrService } from '../services/signalr.service';
 })
 export class MoviesComponent implements OnInit {
 
-  movieList: Array<Movie> = [];
-
-  constructor(private movieService: MovieService,
-              private toastr: ToastrService,
-              private signalrService: SignalrService) {
-                signalrService.moviesComponent = this;
-              }
+  constructor(private toastr: ToastrService,
+              public signalrService: SignalrService) {}
 
   ngOnInit(): void {
-    this.movieService.getAllMovies().subscribe(res => {
-      console.log(res);
-      this.movieList = res as Array<Movie>;
-    }, err => console.log(err));
-
     this.signalrService.startConnection();
     this.signalrService.downloadAllTrailersListener();
     this.signalrService.deleteAllTrailersListener();

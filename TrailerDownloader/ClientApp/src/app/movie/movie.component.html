@@ -1,8 +1,8 @@
 <div *ngIf="movieInfo" class="card p-3">
   <div class="card-img-wrapper">
     <a>
-      <img *ngIf="!movieInfo.posterPath.includes('null')" class="card-img-top" src="{{ movieInfo.posterPath }}">
-      <img *ngIf="movieInfo.posterPath.includes('null')" class="card-img-top" src="../../assets/images/default.png">
+      <img *ngIf="movieInfo.posterPath" class="card-img-top" src="{{ movieInfo.posterPath }}">
+      <img *ngIf="!movieInfo.posterPath" class="card-img-top" src="../../assets/images/default.png">
     </a>
   </div>
 

@@ -42,7 +42,7 @@ namespace TrailerDownloader
             });
 
             services.AddScoped<IConfigRepository, ConfigRepository>();
-            services.AddScoped<ITrailerRepository, TrailerRepository>();
+            services.AddScoped<ITrailerRepository, MovieHub>();
 
             services.AddSignalR();
         }

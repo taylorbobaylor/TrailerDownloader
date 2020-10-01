@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as signalR from "@aspnet/signalr";
 import { Movie } from "../models/movie";
-import { MoviesComponent } from '../movies/movies.component';
 
 @Injectable({
   providedIn: 'root'
@@ -9,7 +8,7 @@ import { MoviesComponent } from '../movies/movies.component';
 export class SignalrService {
 
   hubConnection: signalR.HubConnection;
-  moviesComponent: MoviesComponent;
+  movieList: Array<Movie> = [];
 
   constructor() { }
 
@@ -20,6 +19,8 @@ export class SignalrService {
 
     this.hubConnection.start().then(() => {
       console.log('Connection started');
+      this.getAllMoviesInfoListener();
+      this.getAllMoviesInfo();
     }).catch(err => {
       console.log('Error starting connection: ' + err);
     });
@@ -28,7 +29,7 @@ export class SignalrService {
   downloadAllTrailersListener = () => {
     this.hubConnection.on('downloadAllTrailers', data => {
       console.log(data);
-      this.moviesComponent.movieList = data as Array<Movie>;
+      this.movieList = data as Array<Movie>;
     });
   }
 
@@ -38,11 +39,21 @@ export class SignalrService {
 
   deleteAllTrailersListener = () => {
     this.hubConnection.on('deleteAllTrailers', data => {
-      this.moviesComponent.movieList = data as Array<Movie>;
+      this.movieList = data as Array<Movie>;
     });
   }
 
   deleteAllTrailers(movieList: Array<Movie>) {
     this.hubConnection.invoke('deleteAllTrailers', movieList);
+  }
+
+  private getAllMoviesInfoListener = () => {
+    this.hubConnection.on('getAllMoviesInfo', data => {
+      this.movieList = data as Array<Movie>;
+    });
+  }
+
+  private getAllMoviesInfo() {
+    this.hubConnection.invoke('getAllMoviesInfo').catch(err => console.log(err));
   }
 }
