@@ -63,9 +63,22 @@ namespace TrailerDownloader.SignalRHubs
             return result.IsCompleted;
         }
 
-        public bool DownloadAllTrailers(IEnumerable<Movie> movieList)
+        public async Task<bool> DownloadAllTrailers(IEnumerable<Movie> movieList)
         {
-            ParallelLoopResult result = Parallel.ForEach(movieList, async movie =>
+            //ParallelLoopResult result = Parallel.ForEach(movieList, async movie =>
+            //{
+            //    if (movie.TrailerExists == false)
+            //    {
+            //        if (DownloadTrailerAsync(movie).Result)
+            //        {
+            //            movie.TrailerExists = true;
+            //        }
+
+            //        await Clients.All.SendAsync("downloadAllTrailers", movieList);
+            //    }
+            //});
+
+            foreach (Movie movie in movieList)
             {
                 if (movie.TrailerExists == false)
                 {
@@ -76,9 +89,9 @@ namespace TrailerDownloader.SignalRHubs
 
                     await Clients.All.SendAsync("downloadAllTrailers", movieList);
                 }
-            });
+            }
 
-            return result.IsCompleted;
+            return true;
         }
 
         public async Task<bool> DeleteAllTrailers(IEnumerable<Movie> movieList)
