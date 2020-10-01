@@ -130,13 +130,13 @@ namespace TrailerDownloader.SignalRHubs
 
                 if (singleResult != null)
                 {
-                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/" + singleResult.Value<string>("poster_path");
+                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{singleResult.Value<string>("poster_path")}";
                     movie.Id = singleResult.Value<int>("id");
                 }
                 else if (results != null)
                 {
-                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/" + results.First.Value<string>("poster_path");
-                    movie.Id = results.First.Value<int>("id");
+                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{results.First?.Value<string>("poster_path")}";
+                    movie.Id = results.First?.Value<int>("id");
                 }
 
                 movie.TrailerURL = await GetTrailerURL(movie.Id);
@@ -146,18 +146,21 @@ namespace TrailerDownloader.SignalRHubs
             return new Movie();
         }
 
-        private async Task<string> GetTrailerURL(int id)
+        private async Task<string> GetTrailerURL(int? id)
         {
-            HttpClient httpClient = _httpClientFactory.CreateClient();
-            string uri = $"https://api.themoviedb.org/3/movie/{id}/videos?api_key={_apiKey}&language=en-US";
-
-            HttpResponseMessage response = await httpClient.GetAsync(new Uri(uri));
-            if (response.IsSuccessStatusCode)
+            if (id != null)
             {
-                JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
-                if (results.Count() != 0)
+                HttpClient httpClient = _httpClientFactory.CreateClient();
+                string uri = $"https://api.themoviedb.org/3/movie/{id}/videos?api_key={_apiKey}&language=en-US";
+
+                HttpResponseMessage response = await httpClient.GetAsync(new Uri(uri));
+                if (response.IsSuccessStatusCode)
                 {
-                    return results.First.Value<string>("key");
+                    JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
+                    if (results.Count() != 0)
+                    {
+                        return results.First.Value<string>("key");
+                    }
                 }
             }
 
