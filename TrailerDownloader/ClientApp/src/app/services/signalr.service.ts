@@ -22,6 +22,7 @@ export class SignalrService {
       console.log('Connection started');
       this.completedAllMoviesInfoListener();
       this.getAllMoviesInfoListener();
+      this.doneDownloadingAllTrailersListener();
       this.getAllMoviesInfo();
     }).catch(err => {
       console.log('Error starting connection: ' + err);
@@ -30,7 +31,6 @@ export class SignalrService {
 
   downloadAllTrailersListener = () => {
     this.hubConnection.on('downloadAllTrailers', data => {
-      console.log(data);
       this.movieList = data as Array<Movie>;
     });
   }
@@ -61,7 +61,17 @@ export class SignalrService {
 
   private completedAllMoviesInfoListener = () => {
     this.hubConnection.on('completedAllMoviesInfo', data => {
+      console.log(`Retrieved info for ${data} movies in your library`);
       this.toastr.success(`Retrieved info for ${data} movies in your library`, 'Success!');
+    });
+  }
+
+  private doneDownloadingAllTrailersListener = () => {
+    this.hubConnection.on('doneDownloadingAllTrailersListener', data => {
+      if (data === true) {
+        console.log('Successfully downloaded all missing trailers!');
+        this.toastr.success('Done downloading all missing trailers', 'Success!');
+      }
     });
   }
 
