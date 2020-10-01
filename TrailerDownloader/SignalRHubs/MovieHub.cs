@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -127,16 +126,21 @@ namespace TrailerDownloader.SignalRHubs
             if (response.IsSuccessStatusCode)
             {
                 JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
-                results = results.Where(j => j.Value<string>("title") == movie.Title).FirstOrDefault();
+                JToken singleResult = results.Where(j => j.Value<string>("title") == movie.Title).FirstOrDefault();
 
-                if (results.Count() != 0)
+                if (singleResult != null)
                 {
-                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/" + results.Value<string>("poster_path");
-                    movie.Id = results.Value<int>("id");
-                    movie.TrailerURL = await GetTrailerURL(movie.Id);
-
-                    return movie;
+                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/" + singleResult.Value<string>("poster_path");
+                    movie.Id = singleResult.Value<int>("id");
                 }
+                else if (results != null)
+                {
+                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/" + results.First.Value<string>("poster_path");
+                    movie.Id = results.First.Value<int>("id");
+                }
+
+                movie.TrailerURL = await GetTrailerURL(movie.Id);
+                return movie;
             }
 
             return new Movie();
