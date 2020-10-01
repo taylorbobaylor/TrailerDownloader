@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as signalR from "@aspnet/signalr";
+import { ToastrService } from 'ngx-toastr';
 import { Movie } from "../models/movie";
 
 @Injectable({
@@ -10,7 +11,7 @@ export class SignalrService {
   hubConnection: signalR.HubConnection;
   movieList: Array<Movie> = [];
 
-  constructor() { }
+  constructor(private toastr: ToastrService) { }
 
   startConnection = () => {
     this.hubConnection = new signalR.HubConnectionBuilder()
@@ -19,6 +20,7 @@ export class SignalrService {
 
     this.hubConnection.start().then(() => {
       console.log('Connection started');
+      this.completedAllMoviesInfoListener();
       this.getAllMoviesInfoListener();
       this.getAllMoviesInfo();
     }).catch(err => {
@@ -56,4 +58,11 @@ export class SignalrService {
   private getAllMoviesInfo() {
     this.hubConnection.invoke('getAllMoviesInfo').catch(err => console.log(err));
   }
+
+  private completedAllMoviesInfoListener = () => {
+    this.hubConnection.on('completedAllMoviesInfo', data => {
+      this.toastr.success(`Retrieved info for ${data} movies in your library`, 'Success!');
+    });
+  }
+
 }

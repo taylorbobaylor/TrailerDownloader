@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -36,7 +37,7 @@ namespace TrailerDownloader.SignalRHubs
             }
         }
 
-        public bool GetAllMoviesInfo()
+        public async Task<bool> GetAllMoviesInfo()
         {
             List<Movie> movieList = new List<Movie>();
 
@@ -44,7 +45,7 @@ namespace TrailerDownloader.SignalRHubs
             {
                 bool trailerExists = Directory.GetFiles(movieDirectory).Where(name => name.Contains("-Trailer")).Count() > 0;
                 string filePath = Directory.GetFiles(movieDirectory).Where(ext => !ext.EndsWith("srt") || !ext.EndsWith("sub") || !ext.EndsWith("sbv") || !ext.Contains("-Trailer")).FirstOrDefault();
-                string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(([^\)]+)\)", string.Empty).Trim();
+                string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(([^\)]+)\)", string.Empty).Trim().Replace("-Trailer", string.Empty);
                 string year = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"^[^\(]+", string.Empty).Trim().Replace("(", string.Empty).Replace(")", string.Empty);
 
                 Movie movieInfo = new Movie
@@ -59,6 +60,7 @@ namespace TrailerDownloader.SignalRHubs
                 await Clients.All.SendAsync("getAllMoviesInfo", movieList.OrderBy(m => m.Title));
             });
 
+            await Clients.All.SendAsync("completedAllMoviesInfo", movieList.Count);
             return result.IsCompleted;
         }
 
@@ -125,11 +127,12 @@ namespace TrailerDownloader.SignalRHubs
             if (response.IsSuccessStatusCode)
             {
                 JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
+                results = results.Where(j => j.Value<string>("title") == movie.Title).FirstOrDefault();
 
                 if (results.Count() != 0)
                 {
-                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/" + results.First.Value<string>("poster_path");
-                    movie.Id = results.First.Value<int>("id");
+                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/" + results.Value<string>("poster_path");
+                    movie.Id = results.Value<int>("id");
                     movie.TrailerURL = await GetTrailerURL(movie.Id);
 
                     return movie;
