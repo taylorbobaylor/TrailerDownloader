@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TrailerDownloader.Models;
@@ -23,7 +22,7 @@ namespace TrailerDownloader.SignalRHubs
         // Configs from JSON
         private static string _mediaDirectory;
         private static string _apiKey;
-        private static string configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+        private static readonly string configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
 
         public MovieHub(IHttpClientFactory httpClientFactory)
         {
@@ -37,9 +36,35 @@ namespace TrailerDownloader.SignalRHubs
             }
         }
 
+        public bool GetAllMoviesInfo()
+        {
+            List<Movie> movieList = new List<Movie>();
+
+            ParallelLoopResult result = Parallel.ForEach(Directory.GetDirectories(_mediaDirectory), async movieDirectory =>
+            {
+                bool trailerExists = Directory.GetFiles(movieDirectory).Where(name => name.Contains("-Trailer")).Count() > 0;
+                string filePath = Directory.GetFiles(movieDirectory).Where(ext => !ext.EndsWith("srt") || !ext.EndsWith("sub") || !ext.EndsWith("sbv") || !ext.Contains("-Trailer")).FirstOrDefault();
+                string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(([^\)]+)\)", string.Empty).Trim();
+                string year = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"^[^\(]+", string.Empty).Trim().Replace("(", string.Empty).Replace(")", string.Empty);
+
+                Movie movieInfo = new Movie
+                {
+                    TrailerExists = trailerExists,
+                    FilePath = Path.GetDirectoryName(filePath),
+                    Title = title,
+                    Year = year
+                };
+
+                movieList.Add(GetMovieInfoAsync(movieInfo).Result);
+                await Clients.All.SendAsync("getAllMoviesInfo", movieList.OrderBy(m => m.Title));
+            });
+
+            return result.IsCompleted;
+        }
+
         public bool DownloadAllTrailers(IEnumerable<Movie> movieList)
         {
-            Parallel.ForEach(movieList, async movie =>
+            ParallelLoopResult result = Parallel.ForEach(movieList, async movie =>
             {
                 if (movie.TrailerExists == false)
                 {
@@ -52,7 +77,7 @@ namespace TrailerDownloader.SignalRHubs
                 }
             });
 
-            return true;
+            return result.IsCompleted;
         }
 
         public async Task<bool> DeleteAllTrailers(IEnumerable<Movie> movieList)
@@ -73,17 +98,14 @@ namespace TrailerDownloader.SignalRHubs
 
         private async Task<bool> DownloadTrailerAsync(Movie movie)
         {
-            var youtube = new YoutubeClient();
-            var streamManifest = await youtube.Videos.Streams.GetManifestAsync(movie.TrailerURL);
+            YoutubeClient youtube = new YoutubeClient();
+            StreamManifest streamManifest = await youtube.Videos.Streams.GetManifestAsync(movie.TrailerURL);
 
             // Get highest quality muxed stream
-            var streamInfo = streamManifest.GetMuxed().WithHighestVideoQuality();
+            IVideoStreamInfo streamInfo = streamManifest.GetMuxed().WithHighestVideoQuality();
 
             if (streamInfo != null)
             {
-                // Get the actual stream
-                var stream = await youtube.Videos.Streams.GetAsync(streamInfo);
-
                 // Download the stream to file
                 await youtube.Videos.Streams.DownloadAsync(streamInfo, Path.Combine(movie.FilePath, $"{movie.Title}-Trailer.{streamInfo.Container}"));
 
@@ -92,31 +114,6 @@ namespace TrailerDownloader.SignalRHubs
 
             return false;
         }
-
-        public void GetAllMoviesInfo()
-        {
-            List<Movie> movieList = new List<Movie>();
-
-            Parallel.ForEach(Directory.GetDirectories(_mediaDirectory), async movieDirectory =>
-            {
-                bool trailerExists = Directory.GetFiles(movieDirectory).Where(name => name.Contains("-Trailer")).Count() > 0;
-                string filePath = Directory.GetFiles(movieDirectory).Where(ext => !ext.EndsWith("srt") || !ext.EndsWith("sub") || !ext.EndsWith("sbv") || !ext.Contains("-Trailer")).FirstOrDefault();
-                string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(([^\)]+)\)", string.Empty).Trim();
-                string year = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"^[^\(]+", string.Empty).Trim().Replace("(", string.Empty).Replace(")", string.Empty);
-
-                Movie movieInfo = new Movie
-                {
-                    TrailerExists = trailerExists,
-                    FilePath = Path.GetDirectoryName(filePath),
-                    Title = title,
-                    Year = year
-                };
-
-                movieList.Add(GetMovieInfoAsync(movieInfo).Result);
-                await Clients.All.SendAsync("getAllMoviesInfo", movieList.OrderBy(m => m.Title));
-            });
-        }
-
 
         private async Task<Movie> GetMovieInfoAsync(Movie movie)
         {

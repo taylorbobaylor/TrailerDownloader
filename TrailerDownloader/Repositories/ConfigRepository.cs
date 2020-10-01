@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.IO;
 using TrailerDownloader.Models;
 
@@ -7,11 +6,10 @@ namespace TrailerDownloader.Repositories
 {
     public class ConfigRepository : IConfigRepository
     {
-        private static string configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+        private static readonly string configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
 
         public Config GetConfig()
         {
-            
             if (File.Exists(configPath))
             {
                 string json = File.ReadAllText(configPath);
