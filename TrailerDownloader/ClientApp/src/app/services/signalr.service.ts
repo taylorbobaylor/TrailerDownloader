@@ -53,6 +53,7 @@ export class SignalrService {
     this.hubConnection.on('getAllMoviesInfo', data => {
       this.movieList = data as Array<Movie>;
     });
+    this.hubConnection.serverTimeoutInMilliseconds = 30000;
   }
 
   private getAllMoviesInfo() {
