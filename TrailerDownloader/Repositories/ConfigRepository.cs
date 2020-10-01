@@ -1,4 +1,3 @@
-﻿using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System.IO;
 using TrailerDownloader.Models;

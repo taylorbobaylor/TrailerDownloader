@@ -53,24 +53,21 @@ public class MovieHub : Hub, ITrailerRepository
 
         foreach (string movieDirectory in _movieDirectories)
         {
-            foreach (string movieDirectory1 in Directory.GetDirectories(movieDirectory))
+            Movie movie = GetMovieFromDirectory(movieDirectory);
+            if (movie == null)
             {
-                Movie movie = GetMovieFromDirectory(movieDirectory1);
-                if (movie == null)
-                {
-                    _logger.LogInformation($"No movie found in directory: '{movieDirectory1}'");
-                    continue;
-                }
+                _logger.LogInformation($"No movie found in directory: '{movieDirectory}'");
+                continue;
+            }
 
-                if (_movieDictionary.TryGetValue(movie.Title, out Movie dictionaryMovie))
-                {
-                    dictionaryMovie.TrailerExists = movie.TrailerExists;
-                    await _hubContext.Clients.All.SendAsync("getAllMoviesInfo", dictionaryMovie).ConfigureAwait(false);
-                }
-                else
-                {
-                    taskList.Add(GetMovieInfoAsync(movie));
-                }
+            if (_movieDictionary.TryGetValue(movie.Title, out Movie dictionaryMovie))
+            {
+                dictionaryMovie.TrailerExists = movie.TrailerExists;
+                await _hubContext.Clients.All.SendAsync("getAllMoviesInfo", dictionaryMovie).ConfigureAwait(false);
+            }
+            else
+            {
+                taskList.Add(GetMovieInfoAsync(movie));
             }
         }
 
@@ -88,6 +85,41 @@ public class MovieHub : Hub, ITrailerRepository
         });
 
         await _hubContext.Clients.All.SendAsync("completedAllMoviesInfo", _movieDictionary.Count).ConfigureAwait(false);
+    }
+
+    public async Task<bool> DownloadAllTrailers(IEnumerable<Movie> movieList)
+    {
+        foreach (Movie movie in movieList.OrderBy(movie => movie.Title))
+        {
+            if (movie.TrailerExists == false && string.IsNullOrEmpty(movie.TrailerURL) == false)
+            {
+                if (await DownloadTrailerAsync(movie))
+                {
+                    movie.TrailerExists = true;
+                    await _hubContext.Clients.All.SendAsync("downloadAllTrailers", movie);
+                }
+            }
+        }
+
+        await _hubContext.Clients.All.SendAsync("doneDownloadingAllTrailersListener", true);
+        return true;
+    }
+
+    public async Task<bool> DeleteAllTrailers(IEnumerable<Movie> movieList)
+    {
+        foreach (Movie movie in movieList)
+        {
+            if (movie.TrailerExists)
+            {
+                string filePath = Directory.GetFiles(movie.FilePath).Where(name => name.Contains("-trailer")).FirstOrDefault();
+                File.Delete(filePath);
+                movie.TrailerExists = false;
+                _movieDictionary.FirstOrDefault(mov => mov.Value.FilePath == movie.FilePath).Value.TrailerExists = false;
+                await _hubContext.Clients.All.SendAsync("deleteAllTrailers", movie);
+            }
+        }
+
+        return true;
     }
 
     private void GetMovieDirectories(string directoryPath)
@@ -142,40 +174,6 @@ public class MovieHub : Hub, ITrailerRepository
             Title = title,
             Year = year
         };
-    }
-
-    public async void DownloadAllTrailers(IEnumerable<Movie> movieList)
-    {
-        foreach (Movie movie in movieList.OrderBy(movie => movie.Title))
-        {
-            if (movie.TrailerExists == false && string.IsNullOrEmpty(movie.TrailerURL) == false)
-            {
-                if (DownloadTrailerAsync(movie).Result)
-                {
-                    movie.TrailerExists = true;
-                    await _hubContext.Clients.All.SendAsync("downloadAllTrailers", movie);
-                }
-            }
-        }
-
-        await _hubContext.Clients.All.SendAsync("doneDownloadingAllTrailersListener", true);
-    }
-
-    public bool DeleteAllTrailers(IEnumerable<Movie> movieList)
-    {
-        ParallelLoopResult result = Parallel.ForEach(movieList, async movie =>
-        {
-            if (movie.TrailerExists)
-            {
-                string filePath = Directory.GetFiles(movie.FilePath).Where(name => name.Contains("-trailer")).FirstOrDefault();
-                File.Delete(filePath);
-                movie.TrailerExists = false;
-                _movieDictionary.FirstOrDefault(mov => mov.Value.FilePath == movie.FilePath).Value.TrailerExists = false;
-                await _hubContext.Clients.All.SendAsync("deleteAllTrailers", movie);
-            }
-        });
-
-        return result.IsCompleted;
     }
 
     private async Task<bool> DownloadTrailerAsync(Movie movie)
@@ -238,7 +236,7 @@ public class MovieHub : Hub, ITrailerRepository
                 {
                     _movieDictionary.TryAdd(movie.FilePath, movie);
                 }
-                
+
                 return movie;
             }
 
