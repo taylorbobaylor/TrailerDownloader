@@ -82,7 +82,7 @@ namespace TrailerDownloader.SignalRHubs
 
             foreach (Movie movie in movieList)
             {
-                if (movie.TrailerExists == false)
+                if (movie.TrailerExists == false && string.IsNullOrEmpty(movie.TrailerURL) == false)
                 {
                     if (DownloadTrailerAsync(movie).Result)
                     {
