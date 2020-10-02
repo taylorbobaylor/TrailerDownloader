@@ -44,7 +44,10 @@ namespace TrailerDownloader
             services.AddScoped<IConfigRepository, ConfigRepository>();
             services.AddScoped<ITrailerRepository, MovieHub>();
 
-            services.AddSignalR();
+            services.AddSignalR(x =>
+            {
+                x.MaximumReceiveMessageSize = 102400000;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
