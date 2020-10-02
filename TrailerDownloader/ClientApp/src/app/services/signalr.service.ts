@@ -18,9 +18,6 @@ export class SignalrService {
                               .withUrl(window.location.origin + '/moviehub')
                               .build();
 
-    this.hubConnection.serverTimeoutInMilliseconds = 5000000000000;
-    this.hubConnection.keepAliveIntervalInMilliseconds = 5000000000000;
-
     this.hubConnection.start().then(() => {
       console.log('Connection started');
       this.completedAllMoviesInfoListener();
