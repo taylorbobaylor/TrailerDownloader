@@ -36,7 +36,16 @@ export class SignalrService {
   }
 
   downloadAllTrailers(movieList: Array<Movie>) {
-    this.hubConnection.invoke('downloadAllTrailers', movieList).catch(err => console.log(err));
+    console.log(this.hubConnection.state);
+
+    if (this.hubConnection.state !== 1) {
+      this.hubConnection.start().then(() => {
+        this.hubConnection.invoke('downloadAllTrailers', movieList).catch(err => console.log(err));
+      });
+    }
+    else {
+      this.hubConnection.invoke('downloadAllTrailers', movieList).catch(err => console.log(err));
+    }
   }
 
   deleteAllTrailersListener = () => {
@@ -53,7 +62,6 @@ export class SignalrService {
     this.hubConnection.on('getAllMoviesInfo', data => {
       this.movieList = data as Array<Movie>;
     });
-    this.hubConnection.serverTimeoutInMilliseconds = 30000;
   }
 
   private getAllMoviesInfo() {
