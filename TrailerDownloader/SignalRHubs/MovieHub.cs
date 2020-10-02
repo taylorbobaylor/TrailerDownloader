@@ -38,9 +38,10 @@ namespace TrailerDownloader.SignalRHubs
 
         public async Task<bool> GetAllMoviesInfo()
         {
-            List<Movie> movieList = new List<Movie>();
+            IEnumerable<Movie> movieList;
+            List<Task<Movie>> taskList = new List<Task<Movie>>();
 
-            ParallelLoopResult result = Parallel.ForEach(Directory.GetDirectories(_mediaDirectory), async movieDirectory =>
+            foreach (string movieDirectory in Directory.GetDirectories(_mediaDirectory))
             {
                 bool trailerExists = Directory.GetFiles(movieDirectory).Where(name => name.Contains("-Trailer")).Count() > 0;
                 string filePath = Directory.GetFiles(movieDirectory).Where(ext => !ext.EndsWith("srt") || !ext.EndsWith("sub") || !ext.EndsWith("sbv") || !ext.Contains("-Trailer")).FirstOrDefault();
@@ -55,30 +56,12 @@ namespace TrailerDownloader.SignalRHubs
                     Year = year
                 };
 
-                movieList.Add(GetMovieInfoAsync(movieInfo).Result);
-                await Clients.All.SendAsync("getAllMoviesInfo", movieList.OrderBy(m => m.Title));
-            });
+                taskList.Add(GetMovieInfoAsync(movieInfo));
+            }
 
-            //foreach (string movieDirectory in Directory.GetDirectories(_mediaDirectory))
-            //{
-            //    bool trailerExists = Directory.GetFiles(movieDirectory).Where(name => name.Contains("-Trailer")).Count() > 0;
-            //    string filePath = Directory.GetFiles(movieDirectory).Where(ext => !ext.EndsWith("srt") || !ext.EndsWith("sub") || !ext.EndsWith("sbv") || !ext.Contains("-Trailer")).FirstOrDefault();
-            //    string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(([^\)]+)\)", string.Empty).Trim().Replace("-Trailer", string.Empty);
-            //    string year = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"^[^\(]+", string.Empty).Trim().Replace("(", string.Empty).Replace(")", string.Empty);
+            movieList = await Task.WhenAll(taskList);
 
-            //    Movie movieInfo = new Movie
-            //    {
-            //        TrailerExists = trailerExists,
-            //        FilePath = Path.GetDirectoryName(filePath),
-            //        Title = title,
-            //        Year = year
-            //    };
-
-            //    movieList.Add(GetMovieInfoAsync(movieInfo).Result);
-            //    await Clients.All.SendAsync("getAllMoviesInfo", movieList.OrderBy(m => m.Title));
-            //}
-
-            await Clients.All.SendAsync("completedAllMoviesInfo", movieList.Count);
+            await Clients.All.SendAsync("completedAllMoviesInfo", movieList.Count());
             return true;
         }
 
@@ -174,6 +157,8 @@ namespace TrailerDownloader.SignalRHubs
                 }
 
                 movie.TrailerURL = await GetTrailerURL(movie.Id);
+                await Clients.All.SendAsync("getAllMoviesInfo", movie);
+
                 return movie;
             }
 

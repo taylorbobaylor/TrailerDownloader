@@ -18,6 +18,9 @@ export class SignalrService {
                               .withUrl(window.location.origin + '/moviehub')
                               .build();
 
+    this.hubConnection.serverTimeoutInMilliseconds = 5000000000000;
+    this.hubConnection.keepAliveIntervalInMilliseconds = 5000000000000;
+
     this.hubConnection.start().then(() => {
       console.log('Connection started');
       this.completedAllMoviesInfoListener();
@@ -60,7 +63,8 @@ export class SignalrService {
 
   private getAllMoviesInfoListener = () => {
     this.hubConnection.on('getAllMoviesInfo', data => {
-      this.movieList = data as Array<Movie>;
+      this.movieList.push(data as Movie);
+      this.movieList.sort((a, b) => a.title.localeCompare(b.title))
     });
   }
 
