@@ -36,21 +36,13 @@ export class SignalrService {
   }
 
   downloadAllTrailers(movieList: Array<Movie>) {
-    console.log(this.hubConnection.state);
-
-    if (this.hubConnection.state !== 1) {
-      this.hubConnection.start().then(() => {
-        this.hubConnection.invoke('downloadAllTrailers', movieList).catch(err => console.log(err));
-      });
-    }
-    else {
-      this.hubConnection.invoke('downloadAllTrailers', movieList).catch(err => console.log(err));
-    }
+    this.hubConnection.invoke('downloadAllTrailers', movieList).catch(err => console.log(err));
   }
 
   deleteAllTrailersListener = () => {
-    this.hubConnection.on('deleteAllTrailers', data => {
-      this.movieList = data as Array<Movie>;
+    this.hubConnection.on('deleteAllTrailers', (data: Movie) => {
+      let indexOfMovieInList = this.movieList.findIndex(x => x.title === data.title);
+      this.movieList[indexOfMovieInList] = data;
     });
   }
 
@@ -59,9 +51,9 @@ export class SignalrService {
   }
 
   private getAllMoviesInfoListener = () => {
-    this.hubConnection.on('getAllMoviesInfo', data => {
-      this.movieList.push(data as Movie);
-      this.movieList.sort((a, b) => a.title.localeCompare(b.title))
+    this.hubConnection.on('getAllMoviesInfo', (data: Movie) => {
+      this.movieList.push(data);
+      this.movieList.sort((a, b) => a.title.localeCompare(b.title));
     });
   }
 

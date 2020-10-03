@@ -8,6 +8,6 @@ namespace TrailerDownloader.Repositories
     {
         Task<bool> GetAllMoviesInfo();
         Task<bool> DownloadAllTrailers(IEnumerable<Movie> movieList);
-        Task<bool> DeleteAllTrailers(IEnumerable<Movie> movieList);
+        bool DeleteAllTrailers(IEnumerable<Movie> movieList);
     }
 }
