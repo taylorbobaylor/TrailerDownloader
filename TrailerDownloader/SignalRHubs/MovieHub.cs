@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -20,22 +21,24 @@ namespace TrailerDownloader.SignalRHubs
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<MovieHub> _logger;
+        private readonly IConfiguration _configuration;
 
         // Configs from JSON
         private static string _mediaDirectory;
         private static string _apiKey;
         private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
 
-        public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger)
+        public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger, IConfiguration configuration)
         {
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configuration = configuration;
 
             if (File.Exists(_configPath))
             {
                 string jsonConfig = File.ReadAllText(_configPath);
                 _mediaDirectory = JsonConvert.DeserializeObject<Config>(jsonConfig).MediaDirectory;
-                _apiKey = JsonConvert.DeserializeObject<Config>(jsonConfig).TMDBKey;
+                _apiKey = _configuration["TMDBApiKey"];
             }
         }
 
@@ -128,7 +131,6 @@ namespace TrailerDownloader.SignalRHubs
             {
                 _logger.LogError($"Error downloading trailer for {movie.Title}\n{ex.Message}");
                 return false;
-                //throw new Exception($"Error downloading trailer for {movie.Title}\n{ex.Message}");
             }
         }
 
