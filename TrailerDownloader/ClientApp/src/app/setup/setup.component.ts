@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ToastRef, ToastrModule, ToastrService } from 'ngx-toastr';
+import { ToastrService } from 'ngx-toastr';
 import { ConfigService } from '../services/config.service';
 
 @Component({
@@ -21,9 +21,13 @@ export class SetupComponent implements OnInit {
     if (form.valid) {
       this.configService.saveConfig(form.value).subscribe(res => {
         if (res === true) {
+          this.toastr.success('Configuration saved', 'Success!');
           this.router.navigate(['movies']);
         }
-        this.toastr.success('Configuration saved', 'Success!');
+        else {
+          console.log('Media directory path does not exist... Please try again.');
+          this.toastr.error('Media directory path does not exist... Please try again', 'Error');
+        }
       }, err => {
         console.log(err);
       });

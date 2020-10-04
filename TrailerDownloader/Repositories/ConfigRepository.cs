@@ -6,13 +6,13 @@ namespace TrailerDownloader.Repositories
 {
     public class ConfigRepository : IConfigRepository
     {
-        private static readonly string configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+        private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
 
         public Config GetConfig()
         {
-            if (File.Exists(configPath))
+            if (File.Exists(_configPath))
             {
-                string json = File.ReadAllText(configPath);
+                string json = File.ReadAllText(_configPath);
                 return JsonConvert.DeserializeObject<Config>(json);
             }
 
@@ -21,7 +21,12 @@ namespace TrailerDownloader.Repositories
 
         public bool SaveConfig(Config configs)
         {
-            File.WriteAllText(configPath, JsonConvert.SerializeObject(configs));
+            if (Directory.Exists(configs.MediaDirectory) == false)
+            {
+                return false;
+            }
+
+            File.WriteAllText(_configPath, JsonConvert.SerializeObject(configs));
             return true;
         }
     }

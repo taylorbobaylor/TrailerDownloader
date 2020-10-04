@@ -24,16 +24,16 @@ namespace TrailerDownloader.SignalRHubs
         // Configs from JSON
         private static string _mediaDirectory;
         private static string _apiKey;
-        private static readonly string configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+        private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
 
         public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger)
         {
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-            if (File.Exists(configPath))
+            if (File.Exists(_configPath))
             {
-                string jsonConfig = File.ReadAllText(configPath);
+                string jsonConfig = File.ReadAllText(_configPath);
                 _mediaDirectory = JsonConvert.DeserializeObject<Config>(jsonConfig).MediaDirectory;
                 _apiKey = JsonConvert.DeserializeObject<Config>(jsonConfig).TMDBKey;
             }
