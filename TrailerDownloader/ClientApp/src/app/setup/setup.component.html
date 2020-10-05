@@ -1,5 +1,10 @@
 <div class="container mt-5">
   <form #form="ngForm" (ngSubmit)="onSubmit(form)">
+    <div class="form-group col-xs-2">
+      <label>TMDB API Key</label>
+      <input name="tmdbKey" ngModel class="form-control" placeholder="Enter API key" required>
+    </div>
+
     <div class="form-group">
       <label>Media Directory</label>
       <input name="mediaDirectory" ngModel class="form-control" placeholder="Enter local media directory path" required>
