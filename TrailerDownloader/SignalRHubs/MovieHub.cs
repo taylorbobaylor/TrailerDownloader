@@ -68,16 +68,15 @@ namespace TrailerDownloader.SignalRHubs
 
         public async Task<bool> DownloadAllTrailers(IEnumerable<Movie> movieList)
         {
-            foreach (Movie movie in movieList)
+            foreach (Movie movie in movieList.OrderBy(movie => movie.Title))
             {
                 if (movie.TrailerExists == false && string.IsNullOrEmpty(movie.TrailerURL) == false)
                 {
                     if (DownloadTrailerAsync(movie).Result)
                     {
                         movie.TrailerExists = true;
+                        await Clients.All.SendAsync("downloadAllTrailers", movie);
                     }
-
-                    await Clients.All.SendAsync("downloadAllTrailers", movieList);
                 }
             }
 
@@ -125,8 +124,8 @@ namespace TrailerDownloader.SignalRHubs
             catch (Exception ex)
             {
                 _logger.LogError($"Error downloading trailer for {movie.Title}\n{ex.Message}");
+                await Clients.All.SendAsync("downloadAllTrailers", movie);
                 return false;
-                //throw new Exception($"Error downloading trailer for {movie.Title}\n{ex.Message}");
             }
         }
 

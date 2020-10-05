@@ -30,8 +30,15 @@ export class SignalrService {
   }
 
   downloadAllTrailersListener = () => {
-    this.hubConnection.on('downloadAllTrailers', data => {
-      this.movieList = data as Array<Movie>;
+    this.hubConnection.on('downloadAllTrailers', (data: Movie) => {
+      if (data.trailerExists) {
+        let indexOfMovieInList = this.movieList.findIndex(x => x.title === data.title);
+        this.movieList[indexOfMovieInList] = data;
+        this.toastr.success(`Done downloading trailer for ${data.title}`, 'Success!');
+      }
+      else {
+        this.toastr.error(`Issues downloading trailer for ${data.title}, please check the logs`, 'Error');
+      }
     });
   }
 
