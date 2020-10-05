@@ -21,10 +21,9 @@ namespace TrailerDownloader.SignalRHubs
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<MovieHub> _logger;
 
-        // Configs from JSON
-        private static string _mediaDirectory;
-        private static string _apiKey;
+        private static readonly string _apiKey = "e438e2812f17faa299396505f2b375bb";
         private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+        private static string _mediaDirectory;
 
         public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger)
         {
@@ -35,7 +34,6 @@ namespace TrailerDownloader.SignalRHubs
             {
                 string jsonConfig = File.ReadAllText(_configPath);
                 _mediaDirectory = JsonConvert.DeserializeObject<Config>(jsonConfig).MediaDirectory;
-                _apiKey = JsonConvert.DeserializeObject<Config>(jsonConfig).TMDBKey;
             }
         }
 
