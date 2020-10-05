@@ -23,7 +23,6 @@ namespace TrailerDownloader.SignalRHubs
         private readonly ILogger<MovieHub> _logger;
         private readonly IConfiguration _configuration;
 
-        // Configs from JSON
         private static string _mediaDirectory;
         private static string _apiKey;
         private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
@@ -32,7 +31,7 @@ namespace TrailerDownloader.SignalRHubs
         {
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _configuration = configuration;
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
             if (File.Exists(_configPath))
             {
