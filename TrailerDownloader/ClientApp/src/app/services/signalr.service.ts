@@ -11,6 +11,8 @@ export class SignalrService {
   hubConnection: signalR.HubConnection;
   movieList: Array<Movie> = [];
 
+  allMoviesLoaded: boolean = false;
+
   constructor(private toastr: ToastrService) { }
 
   startConnection = () => {
@@ -72,6 +74,7 @@ export class SignalrService {
     this.hubConnection.on('completedAllMoviesInfo', data => {
       console.log(`Retrieved info for ${data} movies in your library`);
       this.toastr.success(`Retrieved info for ${data} movies in your library`, 'Success!');
+      this.allMoviesLoaded = true;
     });
   }
 

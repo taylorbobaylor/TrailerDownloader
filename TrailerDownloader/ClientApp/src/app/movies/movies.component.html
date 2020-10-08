@@ -1,5 +1,5 @@
 <div class="container">
-  <button class="btn btn-primary mt-3 mb-4 center-block col" (click)="downloadAllTrailers(signalrService.movieList)">
+  <button [disabled]="!signalrService.allMoviesLoaded" class="btn btn-primary mt-3 mb-4 center-block col" (click)="downloadAllTrailers(signalrService.movieList)">
     Download all trailers
   </button>
   <!-- <button class="btn btn-primary mt-3 mb-4 center-block col" (click)="downloadAllTrailers()">Download all trailers</button> -->
