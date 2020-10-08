@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -20,15 +21,17 @@ namespace TrailerDownloader.SignalRHubs
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<MovieHub> _logger;
+        private readonly IMemoryCache _cache;
 
         private static readonly string _apiKey = "e438e2812f17faa299396505f2b375bb";
         private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
         private static string _mediaDirectory;
 
-        public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger)
+        public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger, IMemoryCache cache)
         {
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _cache = cache ?? throw new ArgumentNullException(nameof(cache));
 
             if (File.Exists(_configPath))
             {
@@ -41,6 +44,7 @@ namespace TrailerDownloader.SignalRHubs
         {
             IEnumerable<Movie> movieList;
             List<Task<Movie>> taskList = new List<Task<Movie>>();
+            int cacheMovieCount = 0;
 
             foreach (string movieDirectory in Directory.GetDirectories(_mediaDirectory))
             {
@@ -57,12 +61,23 @@ namespace TrailerDownloader.SignalRHubs
                     Year = year
                 };
 
-                taskList.Add(GetMovieInfoAsync(movieInfo));
+                if (_cache.TryGetValue(movieInfo.Title, out Movie cacheMovieInfo))
+                {
+                    cacheMovieCount++;
+                    await Clients.All.SendAsync("getAllMoviesInfo", cacheMovieInfo);
+                }
+                else
+                {
+                    taskList.Add(GetMovieInfoAsync(movieInfo));
+                }
             }
 
-            movieList = await Task.WhenAll(taskList);
+            if (taskList.Count > 0)
+            {
+                movieList = await Task.WhenAll(taskList);
+            }
 
-            await Clients.All.SendAsync("completedAllMoviesInfo", movieList.Count());
+            await Clients.All.SendAsync("completedAllMoviesInfo", taskList.Count + cacheMovieCount);
             return true;
         }
 
@@ -155,6 +170,7 @@ namespace TrailerDownloader.SignalRHubs
                 movie.TrailerURL = await GetTrailerURL(movie.Id);
                 await Clients.All.SendAsync("getAllMoviesInfo", movie);
 
+                movie = _cache.Set(movie.Title, movie);
                 return movie;
             }
 
