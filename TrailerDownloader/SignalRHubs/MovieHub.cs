@@ -146,35 +146,43 @@ namespace TrailerDownloader.SignalRHubs
 
         private async Task<Movie> GetMovieInfoAsync(Movie movie)
         {
-            HttpClient httpClient = _httpClientFactory.CreateClient();
-
-            string uri = $"https://api.themoviedb.org/3/search/movie?language=en-US&query={movie.Title}&year={movie.Year}&api_key={_apiKey}";
-            HttpResponseMessage response = await httpClient.GetAsync(new Uri(uri));
-
-            if (response.IsSuccessStatusCode)
+            try
             {
-                JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
-                JToken singleResult = results.Where(j => j.Value<string>("title") == movie.Title).FirstOrDefault();
+                HttpClient httpClient = _httpClientFactory.CreateClient();
 
-                if (singleResult != null)
+                string uri = $"https://api.themoviedb.org/3/search/movie?language=en-US&query={movie.Title}&year={movie.Year}&api_key={_apiKey}";
+                HttpResponseMessage response = await httpClient.GetAsync(new Uri(uri));
+
+                if (response.IsSuccessStatusCode)
                 {
-                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{singleResult.Value<string>("poster_path")}";
-                    movie.Id = singleResult.Value<int>("id");
-                }
-                else if (results != null)
-                {
-                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{results.First?.Value<string>("poster_path")}";
-                    movie.Id = results.First?.Value<int>("id");
+                    JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
+                    JToken singleResult = results.Where(j => j.Value<string>("title") == movie.Title).FirstOrDefault();
+
+                    if (singleResult != null)
+                    {
+                        movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{singleResult.Value<string>("poster_path")}";
+                        movie.Id = singleResult.Value<int>("id");
+                    }
+                    else if (results != null)
+                    {
+                        movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{results.First?.Value<string>("poster_path")}";
+                        movie.Id = results.First?.Value<int>("id");
+                    }
+
+                    movie.TrailerURL = await GetTrailerURL(movie.Id);
+                    await Clients.All.SendAsync("getAllMoviesInfo", movie);
+
+                    movie = _cache.Set(movie.Title, movie);
+                    return movie;
                 }
 
-                movie.TrailerURL = await GetTrailerURL(movie.Id);
-                await Clients.All.SendAsync("getAllMoviesInfo", movie);
-
-                movie = _cache.Set(movie.Title, movie);
-                return movie;
+                return null;
             }
-
-            return new Movie();
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error getting movie info for {movie.Title}\n{ex.Message}");
+                return null;
+            }
         }
 
         private async Task<string> GetTrailerURL(int? id)
