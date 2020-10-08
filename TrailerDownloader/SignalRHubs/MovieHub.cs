@@ -61,7 +61,7 @@ namespace TrailerDownloader.SignalRHubs
                     Year = year
                 };
 
-                if (_cache.TryGetValue(movieInfo.Title, out Movie cacheMovieInfo))
+                if (_cache.TryGetValue(movieInfo.FilePath, out Movie cacheMovieInfo))
                 {
                     cacheMovieCount++;
                     await Clients.All.SendAsync("getAllMoviesInfo", cacheMovieInfo);
