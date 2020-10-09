@@ -48,8 +48,6 @@ namespace TrailerDownloader
             {
                 x.MaximumReceiveMessageSize = 102400000;
             });
-
-            services.AddMemoryCache();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

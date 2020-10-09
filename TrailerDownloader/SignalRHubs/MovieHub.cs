@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -21,17 +21,16 @@ namespace TrailerDownloader.SignalRHubs
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<MovieHub> _logger;
-        private readonly IMemoryCache _cache;
+        private static readonly ConcurrentDictionary<string, Movie> _movieDictionary = new ConcurrentDictionary<string, Movie>();
 
         private static readonly string _apiKey = "e438e2812f17faa299396505f2b375bb";
         private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
         private static string _mediaDirectory;
 
-        public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger, IMemoryCache cache)
+        public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger)
         {
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _cache = cache ?? throw new ArgumentNullException(nameof(cache));
 
             if (File.Exists(_configPath))
             {
@@ -44,7 +43,6 @@ namespace TrailerDownloader.SignalRHubs
         {
             IEnumerable<Movie> movieList;
             List<Task<Movie>> taskList = new List<Task<Movie>>();
-            int cacheMovieCount = 0;
 
             foreach (string movieDirectory in Directory.GetDirectories(_mediaDirectory))
             {
@@ -53,7 +51,7 @@ namespace TrailerDownloader.SignalRHubs
                 string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(([^\)]+)\)", string.Empty).Trim().Replace("-trailer", string.Empty);
                 string year = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"^[^\(]+", string.Empty).Trim().Replace("(", string.Empty).Replace(")", string.Empty);
 
-                Movie movieInfo = new Movie
+                Movie movie = new Movie
                 {
                     TrailerExists = trailerExists,
                     FilePath = Path.GetDirectoryName(filePath),
@@ -61,14 +59,13 @@ namespace TrailerDownloader.SignalRHubs
                     Year = year
                 };
 
-                if (_cache.TryGetValue(movieInfo.FilePath, out Movie cacheMovieInfo))
+                if (_movieDictionary.TryGetValue(movie.FilePath, out Movie dictionaryMovie))
                 {
-                    cacheMovieCount++;
-                    await Clients.All.SendAsync("getAllMoviesInfo", cacheMovieInfo);
+                    await Clients.All.SendAsync("getAllMoviesInfo", dictionaryMovie);
                 }
                 else
                 {
-                    taskList.Add(GetMovieInfoAsync(movieInfo));
+                    taskList.Add(GetMovieInfoAsync(movie));
                 }
             }
 
@@ -77,7 +74,7 @@ namespace TrailerDownloader.SignalRHubs
                 movieList = await Task.WhenAll(taskList);
             }
 
-            await Clients.All.SendAsync("completedAllMoviesInfo", taskList.Count + cacheMovieCount);
+            await Clients.All.SendAsync("completedAllMoviesInfo", _movieDictionary.Count);
             return true;
         }
 
@@ -172,7 +169,7 @@ namespace TrailerDownloader.SignalRHubs
                     movie.TrailerURL = await GetTrailerURL(movie.Id);
                     await Clients.All.SendAsync("getAllMoviesInfo", movie);
 
-                    movie = _cache.Set(movie.Title, movie);
+                    movie = _movieDictionary.GetOrAdd(movie.FilePath, movie);
                     return movie;
                 }
 
