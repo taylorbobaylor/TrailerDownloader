@@ -32,8 +32,6 @@ jobs:
       with:
         # Filename for archive
         filename: test.zip
-        # Working directory before zipping
-        directory: /test
     - name: asdf
       run: |
         cd /test
