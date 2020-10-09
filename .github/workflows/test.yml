@@ -2,7 +2,7 @@ name: TrailerDownloader
 
 on:
   push:
-    branches: [ github-actions ]
+    branches: [ github-actions1 ]
   pull_request:
     branches: [ master ]
 
