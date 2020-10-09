@@ -11,38 +11,20 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: Test
-        release_name: Release v1.0.0.0
-        draft: false
-        prerelease: false
-    - name: Test
+    - name: Make directory
       run: |
         mkdir test
         echo testtttt > test/test.txt
-    - name: Zip Release
+    - name: Easy Zip Files
       # You may pin to the exact commit or the version.
-      # uses: TheDoctor0/zip-release@a1afcab9c664c9976ac398fa831eac67bed1eb0e
-      uses: TheDoctor0/zip-release@0.4.1
+      # uses: vimtor/action-zip@5f1c4aa587ea41db1110df6a99981dbe19cee310
+      uses: vimtor/action-zip@v1
       with:
-        # Filename for archive
-        filename: test.zip
-    - name: asdf
-      run: |
-        cd /test
-        dir
-    - name: Upload Release Asset
-      id: upload-release-asset 
-      uses: actions/upload-release-asset@v1
-      env: 
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: .
-        asset_name: test.zip
-        asset_content_type: application/zip
+        # Files or directories to zip
+        files: test/
+        # Name of output zip file
+        # dest: # optional, default is result.zip
+        # Whether to add subdirectories to simply zip all files to the root
+        # recursive: # optional, default is true
+    - name: List directories
+      run: dir
