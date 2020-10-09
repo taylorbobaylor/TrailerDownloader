@@ -20,8 +20,8 @@ jobs:
         
     - name: Install dependencies
       working-directory: ./TrailerDownloader
-      run: dotnet restore
+      run: npm install
       
     - name: Build
       working-directory: ./TrailerDownloader
-      run: dotnet build --configuration Release --no-restore
+      run: npm run build --prod
