@@ -106,6 +106,7 @@ namespace TrailerDownloader.SignalRHubs
                     string filePath = Directory.GetFiles(movie.FilePath).Where(name => name.Contains("-trailer")).FirstOrDefault();
                     File.Delete(filePath);
                     movie.TrailerExists = false;
+                    _movieDictionary.FirstOrDefault(mov => mov.Value.FilePath == movie.FilePath).Value.TrailerExists = false;
                     await Clients.All.SendAsync("deleteAllTrailers", movie);
                 }
             });
