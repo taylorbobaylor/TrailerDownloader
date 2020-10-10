@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TrailerDownloader.Models;
@@ -73,6 +74,14 @@ namespace TrailerDownloader.SignalRHubs
             {
                 movieList = await Task.WhenAll(taskList);
             }
+
+            _movieDictionary.ToList().ForEach(mov =>
+            {
+                if (Directory.Exists(mov.Value.FilePath) == false)
+                {
+                    _ = _movieDictionary.TryRemove(mov.Value.FilePath, out Movie movie);
+                }
+            });
 
             await Clients.All.SendAsync("completedAllMoviesInfo", _movieDictionary.Count);
             return true;
