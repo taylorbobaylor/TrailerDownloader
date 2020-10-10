@@ -26,4 +26,10 @@ This app expects your movies to be in a specific structure. If your movies do no
 ---Movie Title 2 (2009)  
 -----Movie Title 2 (2009).mkv 
 
+## Donate
+
+I did this for fun and a learning experience but feel free to buy me a cup of coffee so I can continue to make this app awesome!
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ZRP9ZGW3RDDRN)
+
 Hopefully this will help someone and enjoy!
