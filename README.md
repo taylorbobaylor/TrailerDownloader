@@ -16,3 +16,14 @@ docker run -d \
 
 ## Demo
 ![til](./TrailerDownloader/Demo/TrailerDownloader.gif)
+
+## Structure
+This app expects your movies to be in a specific structure. If your movies do not match the format below, you will not be able to use this.
+
+-Movies  
+---Movie Title 1 (2014)  
+-----Movie Title 1 (2014).mp4  
+---Movie Title 2 (2009)  
+-----Movie Title 2 (2009).mkv 
+
+Hopefully this will help someone and enjoy!
