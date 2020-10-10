@@ -1,7 +1,7 @@
 # TrailerDownloader
 
 ## Description
-Downloads all trailers for movies in your Plex library
+Downloads all missing trailers for movies in your Plex library. When it downloads, it will place the trailer in the same folder the movie is in with the name {MovieTitle}-trailer.
 
 ## docker cli
 ```bash
