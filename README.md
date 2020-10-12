@@ -3,7 +3,9 @@
 ## Description
 Downloads all missing trailers for movies in your Plex library. When it downloads, it will place the trailer in the same folder the movie is in with the name {MovieTitle}-trailer.
 
-## docker cli
+## Installation
+
+### docker cli
 ```bash
 docker run -d \
   --name=movie-trailer-downloader \
@@ -13,6 +15,11 @@ docker run -d \
 ```
 
 [Docker Hub Repo](https://hub.docker.com/repository/docker/taylorbobaylor/movie-trailer-downloader)
+
+### Windows
+1. Download the latest TrailerDownloaderWindows.zip [here](https://github.com/taylorbobaylor/TrailerDownloader/releases/download/v1.0.0/TrailerDownloaderWindows.zip)
+2. Extract the zip to your preferred directory.
+3. Run TrailerDownloader.exe
 
 ## Demo
 ![til](./TrailerDownloader/Demo/TrailerDownloader.gif)
