@@ -1,8 +1,10 @@
 <div class="container">
   <button [disabled]="!signalrService.allMoviesLoaded" class="btn btn-primary mt-3 mb-4 center-block col" (click)="downloadAllTrailers(signalrService.movieList)">
-    Download all trailers
+    Download all missing trailers
   </button>
-  <!-- <button class="btn btn-primary mt-3 mb-4 center-block col" (click)="downloadAllTrailers()">Download all trailers</button> -->
+
+  <button [disabled]="signalrService.trailersToDownload.length === 0" class="btn btn-secondary mb-4 center-block col" (click)="downloadAllTrailers(signalrService.trailersToDownload)">Download selected trailers</button>
+
   <div class="row p-3">
     <div class="shadow-lg col-lg-3 p-3" *ngFor="let movie of signalrService.movieList">
       <app-movie [movieInfo]="movie"></app-movie>
