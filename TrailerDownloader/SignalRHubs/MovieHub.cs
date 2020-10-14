@@ -51,6 +51,7 @@ namespace TrailerDownloader.SignalRHubs
 
                 if (_movieDictionary.TryGetValue(movie.FilePath, out Movie dictionaryMovie))
                 {
+                    dictionaryMovie.TrailerExists = movie.TrailerExists;
                     await _hubContext.Clients.All.SendAsync("getAllMoviesInfo", dictionaryMovie);
                 }
                 else

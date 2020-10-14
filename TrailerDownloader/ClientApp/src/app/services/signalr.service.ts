@@ -10,6 +10,7 @@ export class SignalrService {
 
   hubConnection: signalR.HubConnection;
   movieList: Array<Movie> = [];
+  trailersToDownload: Array<Movie> = [];
 
   allMoviesLoaded: boolean = false;
 
@@ -81,6 +82,7 @@ export class SignalrService {
   private doneDownloadingAllTrailersListener = () => {
     this.hubConnection.on('doneDownloadingAllTrailersListener', data => {
       if (data === true) {
+        this.trailersToDownload = [];
         console.log('Successfully downloaded all missing trailers!');
         this.toastr.success('Done downloading all missing trailers', 'Success!');
       }
