@@ -26,7 +26,7 @@ namespace TrailerDownloader.SignalRHubs
 
         private static readonly string _apiKey = "e438e2812f17faa299396505f2b375bb";
         private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
-        private static readonly List<string> _excludedFileExtensions = new List<string>() { ".srt", ".sub", ".sbv", ".png", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".tif", ".tif", ".txt", ".nfo" };
+        private static readonly List<string> _excludedFileExtensions = new List<string>() { ".srt", ".sub", ".sbv", ".ssa", ".SRT2UTF-8", ".STL", ".png", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".tif", ".tif", ".txt", ".nfo" };
         private static string _mediaDirectory;
 
         public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger, IHubContext<MovieHub> hubContext)
