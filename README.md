@@ -17,7 +17,7 @@ docker run -d \
 [Docker Hub Repo](https://hub.docker.com/repository/docker/taylorbobaylor/movie-trailer-downloader)
 
 ### Windows
-1. Download the latest TrailerDownloaderWindows.zip [here](https://github.com/taylorbobaylor/TrailerDownloader/releases/download/v1.0.1/TrailerDownloaderWindows.zip)
+1. Download the latest TrailerDownloaderWindows.zip [here](https://github.com/taylorbobaylor/TrailerDownloader/releases/latest)
 2. Extract the zip to your preferred directory.
 3. Run TrailerDownloader.exe
 
