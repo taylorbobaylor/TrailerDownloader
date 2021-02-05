@@ -53,6 +53,11 @@ namespace TrailerDownloader.SignalRHubs
                 foreach (string movieDirectory1 in Directory.GetDirectories(movieDirectory))
                 {
                     Movie movie = GetMovieFromDirectory(movieDirectory1);
+                    if (movie == null)
+                    {
+                        _logger.LogInformation($"No movie found in directory: '{movieDirectory1}'");
+                        continue;
+                    }
 
                     if (_movieDictionary.TryGetValue(movie.Title, out Movie dictionaryMovie))
                     {
@@ -84,16 +89,23 @@ namespace TrailerDownloader.SignalRHubs
 
         private void GetMovieDirectories(string directoryPath)
         {
-            _movieDirectories.Clear();
-
-            if (Directory.GetFiles(directoryPath).Length == 0)
+            try
             {
-                string[] subDirectories = Directory.GetDirectories(directoryPath);
-                if (Directory.GetFiles(subDirectories.FirstOrDefault()).Length == 0)
+                _movieDirectories.Clear();
+
+                if (Directory.GetFiles(directoryPath).Length == 0)
                 {
-                    foreach (string directory in subDirectories)
+                    string[] subDirectories = Directory.GetDirectories(directoryPath);
+                    if (Directory.GetFiles(subDirectories.FirstOrDefault()).Length == 0)
                     {
-                        GetMovieDirectories(directory);
+                        foreach (string directory in subDirectories)
+                        {
+                            GetMovieDirectories(directory);
+                        }
+                    }
+                    else
+                    {
+                        _movieDirectories.Add(directoryPath);
                     }
                 }
                 else
@@ -101,14 +113,19 @@ namespace TrailerDownloader.SignalRHubs
                     _movieDirectories.Add(directoryPath);
                 }
             }
-            else
+            catch (Exception ex)
             {
-                _movieDirectories.Add(directoryPath);
+                _logger.LogError(ex, "Error in GetMovieDirectories()");
             }
         }
 
         private Movie GetMovieFromDirectory(string movieDirectory)
         {
+            if (Directory.GetFiles(movieDirectory).Length == 0)
+            {
+                return null;
+            }
+
             bool trailerExists = Directory.GetFiles(movieDirectory).Where(name => name.Contains("-trailer")).Count() > 0;
             string filePath = Directory.GetFiles(movieDirectory).FirstOrDefault(file => !_excludedFileExtensions.Any(x => file.EndsWith(x)) && !file.Contains("-trailer"));
             string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(([^\)]+)\)", string.Empty).Trim().Replace("-trailer", string.Empty);
