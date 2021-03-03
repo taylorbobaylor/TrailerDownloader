@@ -53,8 +53,8 @@ namespace TrailerDownloader.Services
 
             if (getMovieTaskList.Count > 0)
             {
-                Task<Movie[]> movies = Task.WhenAll(getMovieTaskList);
-                await _movieRepo.SaveMoviesAsync(movies.Result);
+                Movie[] movies = await Task.WhenAll(getMovieTaskList);
+                await _movieRepo.SaveMoviesAsync(movies);
             }
 
             return movieList;
