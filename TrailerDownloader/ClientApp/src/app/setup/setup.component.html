@@ -1,9 +1,11 @@
-<div class="container mt-5">
-  <form #form="ngForm" (ngSubmit)="onSubmit(form)">
+<img src="../../favicon.ico" class="m-auto d-block">
+
+<div class="container mt-3">
+  <form #form="ngForm" (ngSubmit)="saveConfig(form)">
     <div class="form-group">
-      <label>Media Directory</label>
-      <input name="mediaDirectory" ngModel class="form-control" placeholder="Enter local media directory path" required>
+      <input name="baseMediaPath" ngModel class="form-control form-control-lg" placeholder="Enter local media directory path" required>
     </div>
-    <button type="submit" class="btn btn-primary">Submit</button>
+
+    <button type="submit" class="btn btn-primary btn-lg btn-block mt-3">Submit</button>
   </form>
 </div>

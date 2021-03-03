@@ -1,5 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { Movie } from "../models/movie";
+import { Movie } from '../models/movie';
 import { SignalrService } from '../services/signalr.service';
 
 @Component({
@@ -9,7 +9,7 @@ import { SignalrService } from '../services/signalr.service';
 })
 export class MovieComponent implements OnInit {
 
-  @Input() movieInfo: Movie;
+  @Input() movieInfo?: Movie;
 
   constructor(private signalrService: SignalrService) { }
 

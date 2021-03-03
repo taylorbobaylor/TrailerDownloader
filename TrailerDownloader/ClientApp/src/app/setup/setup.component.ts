@@ -11,26 +11,35 @@ import { ConfigService } from '../services/config.service';
 })
 export class SetupComponent implements OnInit {
 
-  constructor(private configService: ConfigService, private router: Router,
-              private toastr: ToastrService) { }
+  constructor(private configService: ConfigService,
+              private toastr: ToastrService,
+              private router: Router) { }
 
   ngOnInit(): void {
   }
 
-  onSubmit(form: NgForm) {
+  saveConfig(form: NgForm) {
     if (form.valid) {
-      this.configService.saveConfig(form.value).subscribe(res => {
-        if (res === true) {
-          this.toastr.success('Configuration saved', 'Success!');
-          this.router.navigate(['movies']);
+      this.configService.saveConfig(form.value).subscribe(
+        res => {
+          if (res === true) {
+            this.toastr.success('Configuration saved', 'Success!');
+            this.router.navigate(['movies']);
+            return;
+          }
+        },
+        err => {
+          if (err.status === 404) {
+            this.toastr.error('Path does not exist... Please try again', 'Error');
+          }
+          else if (err.status === 500) {
+            this.toastr.error('There was an issue saving the config. Please check the logs.', 'Error');
+          }
         }
-        else {
-          console.log('Media directory path does not exist... Please try again.');
-          this.toastr.error('Media directory path does not exist... Please try again', 'Error');
-        }
-      }, err => {
-        console.log(err);
-      });
+      )
+    }
+    else {
+      this.toastr.error('Enter a media directory path.', 'Error');
     }
   }
 

@@ -1,33 +1,30 @@
-﻿using Newtonsoft.Json;
-using System.IO;
+﻿using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
+using TrailerDownloader.Context;
 using TrailerDownloader.Models;
+using TrailerDownloader.Repositories.Interfaces;
 
 namespace TrailerDownloader.Repositories
 {
     public class ConfigRepository : IConfigRepository
     {
-        private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+        private readonly MovieDbContext _context;
 
-        public Config GetConfig()
+        public ConfigRepository(MovieDbContext context)
         {
-            if (File.Exists(_configPath))
-            {
-                string json = File.ReadAllText(_configPath);
-                return JsonConvert.DeserializeObject<Config>(json);
-            }
-
-            return null;
+            _context = context;
         }
 
-        public bool SaveConfig(Config configs)
+        public async Task<Config> GetConfigAsync()
         {
-            if (Directory.Exists(configs.MediaDirectory) == false)
-            {
-                return false;
-            }
+            return await _context.Config.FirstOrDefaultAsync();
+        }
 
-            File.WriteAllText(_configPath, JsonConvert.SerializeObject(configs));
-            return true;
+        public async Task<int> SaveConfigAsync(string path)
+        {
+            _context.Database.ExecuteSqlRaw("DELETE FROM CONFIG; DELETE FROM MOVIE");
+            await _context.Config.AddAsync(new Config { BaseMediaPath = path });
+            return await _context.SaveChangesAsync();
         }
     }
 }

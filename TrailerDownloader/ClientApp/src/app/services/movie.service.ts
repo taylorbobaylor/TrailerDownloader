@@ -1,15 +1,25 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { HttpClient } from "@angular/common/http";
+import { Movie } from '../models/movie';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MovieService {
 
+  movieBaseUrl: string = window.location.origin + "/api/movie/";
+
   constructor(private http: HttpClient) { }
 
-  getAllMovies() {
-    return this.http.get(window.location.origin + '/api/trailer');
+  getAllMovieInfo() {
+    return this.http.get<Movie[]>(this.movieBaseUrl + 'info');
   }
 
+  downloadAllTrailers(movies: Movie[]) {
+    return this.http.post(this.movieBaseUrl + 'trailer', movies);
+  }
+
+  deleteAllTrailer(movies: Movie[]) {
+    return this.http.post(this.movieBaseUrl + 'trailer/delete', movies);
+  }
 }

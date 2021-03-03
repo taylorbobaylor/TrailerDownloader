@@ -1,38 +1,48 @@
 import { Injectable } from '@angular/core';
-import * as signalR from "@aspnet/signalr";
+import * as signalR from "@microsoft/signalr";
 import { ToastrService } from 'ngx-toastr';
-import { Movie } from "../models/movie";
+import { Movie } from '../models/movie';
+
 
 @Injectable({
   providedIn: 'root'
 })
 export class SignalrService {
 
-  hubConnection: signalR.HubConnection;
-  movieList: Array<Movie> = [];
   trailersToDownload: Array<Movie> = [];
-
-  allMoviesLoaded: boolean = false;
+  movieList: Array<Movie> = [];
+  hubConnection: signalR.HubConnection = new signalR.HubConnectionBuilder()
+                                            .withUrl(window.location.origin + '/moviehub')
+                                            .withAutomaticReconnect()
+                                            .build();
 
   constructor(private toastr: ToastrService) { }
 
-  startConnection = () => {
-    this.hubConnection = new signalR.HubConnectionBuilder()
-                              .withUrl(window.location.origin + '/moviehub')
-                              .build();
-
-    this.hubConnection.start().then(() => {
-      console.log('Connection started');
-      this.completedAllMoviesInfoListener();
-      this.getAllMoviesInfoListener();
-      this.doneDownloadingAllTrailersListener();
-      this.getAllMoviesInfo();
-    }).catch(err => {
-      console.log('Error starting connection: ' + err);
+  startConnection() {
+    return this.hubConnection.start().then(() => {
+      console.log('Hub connection started');
+      this.receiveMovieInfo();
+      this.downloadAllTrailers();
+    })
+    .catch(err => {
+      console.log('Error starting movie hub connection: ' + err);
     });
   }
 
-  downloadAllTrailersListener = () => {
+  private receiveMovieInfo = () => {
+    this.hubConnection.on('receiveMovieInfo', (data: Movie) => {
+      let indexOfMovieInList = this.movieList.findIndex(x => x.title === data.title);
+      if (indexOfMovieInList !== -1) {
+        this.movieList[indexOfMovieInList] = data;
+      }
+      else {
+        this.movieList.push(data);
+      }
+      this.movieList.sort((a, b) => a.title.localeCompare(b.title));
+    });
+  }
+
+  private downloadAllTrailers = () => {
     this.hubConnection.on('downloadAllTrailers', (data: Movie) => {
       if (data.trailerExists) {
         let indexOfMovieInList = this.movieList.findIndex(x => x.title === data.title);
@@ -41,50 +51,6 @@ export class SignalrService {
       }
       else {
         this.toastr.error(`Issues downloading trailer for ${data.title}, please check the logs`, 'Error');
-      }
-    });
-  }
-
-  downloadAllTrailers(movieList: Array<Movie>) {
-    this.hubConnection.invoke('downloadAllTrailers', movieList).catch(err => console.log(err));
-  }
-
-  deleteAllTrailersListener = () => {
-    this.hubConnection.on('deleteAllTrailers', (data: Movie) => {
-      let indexOfMovieInList = this.movieList.findIndex(x => x.title === data.title);
-      this.movieList[indexOfMovieInList] = data;
-    });
-  }
-
-  deleteAllTrailers(movieList: Array<Movie>) {
-    this.hubConnection.invoke('deleteAllTrailers', movieList);
-  }
-
-  private getAllMoviesInfoListener = () => {
-    this.hubConnection.on('getAllMoviesInfo', (data: Movie) => {
-      this.movieList.push(data);
-      this.movieList.sort((a, b) => a.title.localeCompare(b.title));
-    });
-  }
-
-  private getAllMoviesInfo() {
-    this.hubConnection.invoke('getAllMoviesInfo').catch(err => console.log(err));
-  }
-
-  private completedAllMoviesInfoListener = () => {
-    this.hubConnection.on('completedAllMoviesInfo', data => {
-      console.log(`Retrieved info for ${data} movies in your library`);
-      this.toastr.success(`Retrieved info for ${data} movies in your library`, 'Success!');
-      this.allMoviesLoaded = true;
-    });
-  }
-
-  private doneDownloadingAllTrailersListener = () => {
-    this.hubConnection.on('doneDownloadingAllTrailersListener', data => {
-      if (data === true) {
-        this.trailersToDownload = [];
-        console.log('Successfully downloaded all missing trailers!');
-        this.toastr.success('Done downloading all missing trailers', 'Success!');
       }
     });
   }

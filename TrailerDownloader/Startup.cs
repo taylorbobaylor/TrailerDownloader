@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SpaServices.AngularCli;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System;
+using TrailerDownloader.Context;
 using TrailerDownloader.Repositories;
-using TrailerDownloader.SignalRHubs;
+using TrailerDownloader.Repositories.Interfaces;
+using TrailerDownloader.Services;
+using TrailerDownloader.Services.Interfaces;
 
 namespace TrailerDownloader
 {
@@ -22,37 +25,35 @@ namespace TrailerDownloader
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors(options =>
-            {
-                options.AddPolicy("CorsPolicy", builder =>
-                builder.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
-                .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials());
-            });
+            services.AddDbContext<MovieDbContext>(options => options.UseSqlite("Data Source=TrailerDownloader.db;"));
 
             services.AddControllersWithViews();
-
-            services.AddHttpClient();
-
             // In production, the Angular files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
             {
                 configuration.RootPath = "ClientApp/dist";
             });
 
-            services.AddScoped<IConfigRepository, ConfigRepository>();
-            services.AddScoped<ITrailerRepository, MovieHub>();
+            services.AddHttpClient<IMovieRepository, MovieRepository>();
 
-            services.AddSignalR(x =>
-            {
-                x.MaximumReceiveMessageSize = 102400000;
-            });
+            services.AddScoped<IConfigService, ConfigService>();
+            services.AddScoped<IConfigRepository, ConfigRepository>();
+            services.AddScoped<IMovieService, MovieService>();
+            services.AddScoped<IMovieRepository, MovieRepository>();
+
+            services.AddSwaggerGen();
+            services.AddSignalR();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "TrailerDownloader API V1");
+            });
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -73,32 +74,22 @@ namespace TrailerDownloader
 
             app.UseRouting();
 
-            app.UseCors("CorsPolicy");
-
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller}/{action=Index}/{id?}");
+                endpoints.MapHub<MovieRepository>("/moviehub");
             });
 
             app.UseSpa(spa =>
             {
-                // To learn more about options for serving an Angular SPA from ASP.NET Core,
-                // see https://go.microsoft.com/fwlink/?linkid=864501
-
                 spa.Options.SourcePath = "ClientApp";
 
                 if (env.IsDevelopment())
                 {
                     spa.UseAngularCliServer(npmScript: "start");
                 }
-            });
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-                endpoints.MapHub<MovieHub>("/moviehub");
             });
         }
     }

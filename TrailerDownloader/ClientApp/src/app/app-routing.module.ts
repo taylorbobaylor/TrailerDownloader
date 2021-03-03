@@ -1,25 +1,13 @@
 import { NgModule } from '@angular/core';
-import { Routes, RouterModule } from '@angular/router';
+import { RouterModule, Routes } from '@angular/router';
+import { MovieGuard } from './guards/movie.guard';
 import { MoviesComponent } from './movies/movies.component';
 import { SetupComponent } from './setup/setup.component';
-import { PageGuardGuard } from './guard/page-guard.guard';
-
 
 const routes: Routes = [
-  {
-    path: '',
-    redirectTo: 'movies',
-    pathMatch: 'full'
-  },
-  {
-    path: 'setup',
-    component: SetupComponent
-  },
-  {
-    path: 'movies',
-    component: MoviesComponent,
-    canActivate: [PageGuardGuard]
-  }
+  { path: '', redirectTo: 'movies', pathMatch: 'full' },
+  { path: 'setup', component: SetupComponent },
+  { path: 'movies', component: MoviesComponent, canActivate: [MovieGuard] }
 ];
 
 @NgModule({

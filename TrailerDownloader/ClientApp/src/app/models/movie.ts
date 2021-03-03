@@ -1,7 +1,8 @@
 export interface Movie {
+  id: string,
   posterPath: string,
   trailerURL: string,
-  id: number,
+  tmdbId: number,
   filePath: string,
   title: string,
   year: string,
