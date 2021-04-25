@@ -35,7 +35,7 @@ namespace TrailerDownloader.Repositories
         {
             try
             {
-                string uri = $"https://api.themoviedb.org/3/search/movie?language={language}&query={movie.Title}&year={movie.Year}&api_key={_config.GetValue<string>("TMDBApiKey")}";
+                string uri = $"https://api.themoviedb.org/3/search/movie?language={_language}&query={movie.Title}&year={movie.Year}&api_key={_config.GetValue<string>("TMDBApiKey")}";
                 HttpResponseMessage response = await _httpClient.GetAsync(new Uri(uri));
 
                 if (response.IsSuccessStatusCode)
@@ -74,7 +74,7 @@ namespace TrailerDownloader.Repositories
         {
             if (id != null)
             {
-                string uri = $"https://api.themoviedb.org/3/movie/{id}/videos?language={language}&api_key={_config.GetValue<string>("TMDBApiKey")}";
+                string uri = $"https://api.themoviedb.org/3/movie/{id}/videos?language={_language}&api_key={_config.GetValue<string>("TMDBApiKey")}";
 
                 HttpResponseMessage response = await _httpClient.GetAsync(new Uri(uri));
                 if (response.IsSuccessStatusCode)
