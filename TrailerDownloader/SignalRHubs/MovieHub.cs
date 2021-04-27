@@ -28,6 +28,7 @@ namespace TrailerDownloader.SignalRHubs
         private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
         private static readonly List<string> _excludedFileExtensions = new List<string>() { ".srt", ".sub", ".sbv", ".ssa", ".SRT2UTF-8", ".STL", ".png", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".tif", ".tif", ".txt", ".nfo" };
         private static string _mainMovieDirectory;
+        private static string _trailerLanguage;
         private static readonly List<string> _movieDirectories = new List<string>();
 
         public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger, IHubContext<MovieHub> hubContext)
@@ -39,7 +40,9 @@ namespace TrailerDownloader.SignalRHubs
             if (File.Exists(_configPath))
             {
                 string jsonConfig = File.ReadAllText(_configPath);
-                _mainMovieDirectory = JsonConvert.DeserializeObject<Config>(jsonConfig).MediaDirectory;
+                Config config = JsonConvert.DeserializeObject<Config>(jsonConfig);
+                _mainMovieDirectory = config.MediaDirectory;
+                _trailerLanguage = config.TrailerLanguage;
             }
         }
 
@@ -182,7 +185,7 @@ namespace TrailerDownloader.SignalRHubs
                 StreamManifest streamManifest = await youtube.Videos.Streams.GetManifestAsync(movie.TrailerURL);
 
                 // Get highest quality muxed stream
-                IVideoStreamInfo streamInfo = streamManifest.GetMuxed().WithHighestVideoQuality();
+                IVideoStreamInfo streamInfo = streamManifest.GetMuxedStreams().GetWithHighestVideoQuality();
 
                 if (streamInfo != null)
                 {
@@ -248,7 +251,7 @@ namespace TrailerDownloader.SignalRHubs
             if (id != null)
             {
                 HttpClient httpClient = _httpClientFactory.CreateClient();
-                string uri = $"https://api.themoviedb.org/3/movie/{id}/videos?api_key={_apiKey}&language=en-US";
+                string uri = $"https://api.themoviedb.org/3/movie/{id}/videos?api_key={_apiKey}&language={_trailerLanguage}";
 
                 HttpResponseMessage response = await httpClient.GetAsync(new Uri(uri));
                 if (response.IsSuccessStatusCode)
