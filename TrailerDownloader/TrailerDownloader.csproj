@@ -29,6 +29,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Remove="config.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
 
