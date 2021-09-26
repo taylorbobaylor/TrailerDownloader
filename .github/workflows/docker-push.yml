@@ -7,7 +7,7 @@ name: Publish Docker image
 
 on:
   push:
-    branches: add-year-to-trailer-name
+    branches: [ add-year-to-trailer-name ]
 
 jobs:
   push_to_registry:
