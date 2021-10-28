@@ -131,8 +131,8 @@ namespace TrailerDownloader.SignalRHubs
 
             bool trailerExists = Directory.GetFiles(movieDirectory).Where(name => name.Contains("-trailer")).Count() > 0;
             string filePath = Directory.GetFiles(movieDirectory).FirstOrDefault(file => !_excludedFileExtensions.Any(x => file.EndsWith(x)) && !file.Contains("-trailer"));
-            string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(([^\)]+)\)", string.Empty).Trim().Replace("-trailer", string.Empty);
-            string year = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"^[^\(]+", string.Empty).Trim().Replace("(", string.Empty).Replace(")", string.Empty);
+            string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(.*", string.Empty).Trim().Replace("-trailer", string.Empty);
+            string year = Regex.Match(Path.GetFileNameWithoutExtension(filePath), @"\(\d*").Captures.FirstOrDefault()?.Value.Replace("(", string.Empty);
 
             return new Movie
             {
@@ -217,7 +217,7 @@ namespace TrailerDownloader.SignalRHubs
                 if (response.IsSuccessStatusCode)
                 {
                     JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
-                    JToken singleResult = results.Where(j => j.Value<string>("title") == movie.Title).FirstOrDefault();
+                    JToken singleResult = results.FirstOrDefault(j => j.Value<string>("title") == movie.Title);
 
                     if (singleResult != null)
                     {
