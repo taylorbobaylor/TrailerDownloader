@@ -259,15 +259,13 @@ namespace TrailerDownloader.SignalRHubs
                     JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
                     if (results.Count() != 0)
                     {
+                        foreach (JToken result in results)
                         {
-                            foreach (JToken result in results)
+                            if (result.Value<string>("site") == "YouTube")
                             {
-                                if (result.Value<string>("site") == "YouTube")
+                                if (result.Value<string>("type") == "Trailer")
                                 {
-                                    if (result.Value<string>("type") == "Trailer")
-                                    {
-                                        return result.Value<string>("key");
-                                    }
+                                    return result.Value<string>("key");
                                 }
                             }
                         }

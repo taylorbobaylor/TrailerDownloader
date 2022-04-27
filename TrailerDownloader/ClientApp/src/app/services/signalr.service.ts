@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import * as signalR from "@aspnet/signalr";
+import * as signalR from "@microsoft/signalr";
 import { ToastrService } from 'ngx-toastr';
 import { Movie } from "../models/movie";
 
