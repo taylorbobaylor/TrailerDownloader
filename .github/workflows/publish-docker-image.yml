@@ -24,6 +24,9 @@ jobs:
         with:
           images: taylorbobaylor/movie-trailer-downloader:latest
           
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+          
       - name: Docker Setup Buildx
         uses: docker/setup-buildx-action@v2
       
