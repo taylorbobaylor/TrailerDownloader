@@ -30,3 +30,4 @@ jobs:
           context: .
           push: true
           tags: taylorbobaylor/movie-trailer-downloader:latest
+          platforms: linux/amd64,linux/arm64
