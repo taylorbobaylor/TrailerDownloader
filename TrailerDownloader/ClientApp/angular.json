@@ -125,5 +125,8 @@
         }
       }
     }},
-  "defaultProject": "TrailerDownloader-Frontend"
+  "defaultProject": "TrailerDownloader-Frontend",
+  "cli": {
+    "analytics": false
+  }
 }
