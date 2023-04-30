@@ -2,7 +2,8 @@ name: Publish Docker image
 
 on:
   push:
-    branches: master
+    branches:
+      - master
 
 jobs:
   push_to_registry:
@@ -11,23 +12,23 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
-
+          
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
-      
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v2.1.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          
-      - name: Docker Setup Buildx
-        uses: docker/setup-buildx-action@v2
       
       - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v4.0.0
         with:
           context: .
           push: true
           tags: taylorbobaylor/movie-trailer-downloader:latest
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
