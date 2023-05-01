@@ -22,7 +22,7 @@ public class MovieHub : Hub, ITrailerRepository
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<MovieHub> _logger;
     private static IHubContext<MovieHub> _hubContext;
-    private static readonly ConcurrentDictionary<string, Movie> _movieDictionary = new ConcurrentDictionary<string, Movie>();
+    private static readonly Dictionary<string, Movie> _movieDictionary = new();
 
     private static readonly string _apiKey = "e438e2812f17faa299396505f2b375bb";
     private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
@@ -30,6 +30,7 @@ public class MovieHub : Hub, ITrailerRepository
     private static string _mainMovieDirectory;
     private static string _trailerLanguage;
     private static readonly List<string> _movieDirectories = new List<string>();
+    private object _lock = new();
 
     public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger, IHubContext<MovieHub> hubContext)
     {
@@ -83,7 +84,7 @@ public class MovieHub : Hub, ITrailerRepository
         {
             if (Directory.Exists(mov.Value.FilePath) == false)
             {
-                _ = _movieDictionary.TryRemove(mov.Value.FilePath, out Movie movie);
+                _ = _movieDictionary.Remove(mov.Value.FilePath);
             }
         });
 
@@ -232,7 +233,11 @@ public class MovieHub : Hub, ITrailerRepository
                 movie.TrailerURL = await GetTrailerURL(movie.Id);
                 await _hubContext.Clients.All.SendAsync("getAllMoviesInfo", movie);
 
-                movie = _movieDictionary.GetOrAdd(movie.FilePath, movie);
+                lock (_lock)
+                {
+                    _movieDictionary.TryAdd(movie.FilePath, movie);
+                }
+                
                 return movie;
             }
 
