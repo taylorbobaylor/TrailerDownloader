@@ -54,24 +54,21 @@ public class MovieHub : Hub, ITrailerRepository
 
         foreach (string movieDirectory in _movieDirectories)
         {
-            foreach (string movieDirectory1 in Directory.GetDirectories(movieDirectory))
+            Movie movie = GetMovieFromDirectory(movieDirectory);
+            if (movie == null)
             {
-                Movie movie = GetMovieFromDirectory(movieDirectory1);
-                if (movie == null)
-                {
-                    _logger.LogInformation($"No movie found in directory: '{movieDirectory1}'");
-                    continue;
-                }
+                _logger.LogInformation($"No movie found in directory: '{movieDirectory}'");
+                continue;
+            }
 
-                if (_movieDictionary.TryGetValue(movie.Title, out Movie dictionaryMovie))
-                {
-                    dictionaryMovie.TrailerExists = movie.TrailerExists;
-                    await _hubContext.Clients.All.SendAsync("getAllMoviesInfo", dictionaryMovie).ConfigureAwait(false);
-                }
-                else
-                {
-                    taskList.Add(GetMovieInfoAsync(movie));
-                }
+            if (_movieDictionary.TryGetValue(movie.Title, out Movie dictionaryMovie))
+            {
+                dictionaryMovie.TrailerExists = movie.TrailerExists;
+                await _hubContext.Clients.All.SendAsync("getAllMoviesInfo", dictionaryMovie).ConfigureAwait(false);
+            }
+            else
+            {
+                taskList.Add(GetMovieInfoAsync(movie));
             }
         }
 
@@ -96,23 +93,17 @@ public class MovieHub : Hub, ITrailerRepository
         try
         {
             _movieDirectories.Clear();
+            
+            var movieFiles = Directory.EnumerateFiles(directoryPath, "*", SearchOption.AllDirectories)
+                .Where(file => (File.GetAttributes(file) & FileAttributes.Hidden) == 0);
 
-            // Enumerate all subdirectories
-            var subDirectories = Directory.EnumerateDirectories(directoryPath, "*", SearchOption.AllDirectories);
-
-            // Add the movie directories to the collection
-            var hasSubdirectories = false;
-            foreach (var subDirectory in subDirectories)
+            foreach (string movieFile in movieFiles)
             {
-                if (Directory.GetDirectories(subDirectory).Length <= 0) continue;
-                _movieDirectories.Add(subDirectory);
-                hasSubdirectories = true;
-            }
-
-            // If no subdirectories were added, add the main directoryPath
-            if (!hasSubdirectories)
-            {
-                _movieDirectories.Add(directoryPath);
+                string movieDir = Path.GetDirectoryName(movieFile);
+                if (!_movieDirectories.Contains(movieDir))
+                {
+                    _movieDirectories.Add(movieDir);
+                }
             }
         }
         catch (Exception ex)
@@ -120,7 +111,6 @@ public class MovieHub : Hub, ITrailerRepository
             _logger.LogError(ex, "Error in GetMovieDirectories()");
         }
     }
-
 
     private Movie GetMovieFromDirectory(string movieDirectory)
     {
@@ -130,7 +120,18 @@ public class MovieHub : Hub, ITrailerRepository
         }
 
         bool trailerExists = Directory.GetFiles(movieDirectory).Where(name => name.Contains("-trailer")).Count() > 0;
-        string filePath = Directory.GetFiles(movieDirectory).FirstOrDefault(file => !_excludedFileExtensions.Any(x => file.EndsWith(x)) && !file.Contains("-trailer"));
+        
+        DirectoryInfo directory = new DirectoryInfo(movieDirectory);
+        FileInfo[] files = directory.GetFiles();
+
+        var filteredFiles = files.Where(f => !_excludedFileExtensions.Any(f.Name.EndsWith)
+                                             && !f.Name.Contains("-trailer")
+                                             && !f.Attributes.HasFlag(FileAttributes.Hidden));
+
+        string filePath = filteredFiles.FirstOrDefault()?.FullName;
+
+        
+        // string filePath = Directory.GetFiles(movieDirectory).FirstOrDefault(file => !_excludedFileExtensions.Any(file.EndsWith) && !file.Contains("-trailer"));
         string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(.*", string.Empty).Trim().Replace("-trailer", string.Empty);
         string year = Regex.Match(Path.GetFileNameWithoutExtension(filePath), @"\(\d*").Captures.FirstOrDefault()?.Value.Replace("(", string.Empty);
 
