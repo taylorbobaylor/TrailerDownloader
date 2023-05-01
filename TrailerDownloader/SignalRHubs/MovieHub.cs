@@ -15,103 +15,95 @@ using TrailerDownloader.Repositories;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
-namespace TrailerDownloader.SignalRHubs
+namespace TrailerDownloader.SignalRHubs;
+
+public class MovieHub : Hub, ITrailerRepository
 {
-    public class MovieHub : Hub, ITrailerRepository
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<MovieHub> _logger;
+    private static IHubContext<MovieHub> _hubContext;
+    private static readonly ConcurrentDictionary<string, Movie> _movieDictionary = new ConcurrentDictionary<string, Movie>();
+
+    private static readonly string _apiKey = "e438e2812f17faa299396505f2b375bb";
+    private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+    private static readonly List<string> _excludedFileExtensions = new List<string>() { ".srt", ".sub", ".sbv", ".ssa", ".SRT2UTF-8", ".STL", ".png", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".tif", ".tif", ".txt", ".nfo" };
+    private static string _mainMovieDirectory;
+    private static string _trailerLanguage;
+    private static readonly List<string> _movieDirectories = new List<string>();
+
+    public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger, IHubContext<MovieHub> hubContext)
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<MovieHub> _logger;
-        private static IHubContext<MovieHub> _hubContext;
-        private static readonly ConcurrentDictionary<string, Movie> _movieDictionary = new ConcurrentDictionary<string, Movie>();
+        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
 
-        private static readonly string _apiKey = "e438e2812f17faa299396505f2b375bb";
-        private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
-        private static readonly List<string> _excludedFileExtensions = new List<string>() { ".srt", ".sub", ".sbv", ".ssa", ".SRT2UTF-8", ".STL", ".png", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".tif", ".tif", ".txt", ".nfo" };
-        private static string _mainMovieDirectory;
-        private static string _trailerLanguage;
-        private static readonly List<string> _movieDirectories = new List<string>();
-
-        public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger, IHubContext<MovieHub> hubContext)
+        if (File.Exists(_configPath))
         {
-            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
+            string jsonConfig = File.ReadAllText(_configPath);
+            Config config = JsonConvert.DeserializeObject<Config>(jsonConfig);
+            _mainMovieDirectory = config.MediaDirectory;
+            _trailerLanguage = config.TrailerLanguage;
+        }
+    }
 
-            if (File.Exists(_configPath))
+    public async void GetAllMoviesInfo()
+    {
+        GetMovieDirectories(_mainMovieDirectory);
+        List<Task<Movie>> taskList = new List<Task<Movie>>();
+
+        foreach (string movieDirectory in _movieDirectories)
+        {
+            foreach (string movieDirectory1 in Directory.GetDirectories(movieDirectory))
             {
-                string jsonConfig = File.ReadAllText(_configPath);
-                Config config = JsonConvert.DeserializeObject<Config>(jsonConfig);
-                _mainMovieDirectory = config.MediaDirectory;
-                _trailerLanguage = config.TrailerLanguage;
+                Movie movie = GetMovieFromDirectory(movieDirectory1);
+                if (movie == null)
+                {
+                    _logger.LogInformation($"No movie found in directory: '{movieDirectory1}'");
+                    continue;
+                }
+
+                if (_movieDictionary.TryGetValue(movie.Title, out Movie dictionaryMovie))
+                {
+                    dictionaryMovie.TrailerExists = movie.TrailerExists;
+                    await _hubContext.Clients.All.SendAsync("getAllMoviesInfo", dictionaryMovie);
+                }
+                else
+                {
+                    taskList.Add(GetMovieInfoAsync(movie));
+                }
             }
         }
 
-        public async void GetAllMoviesInfo()
+        if (taskList.Count > 0)
         {
-            GetMovieDirectories(_mainMovieDirectory);
-            List<Task<Movie>> taskList = new List<Task<Movie>>();
-
-            foreach (string movieDirectory in _movieDirectories)
-            {
-                foreach (string movieDirectory1 in Directory.GetDirectories(movieDirectory))
-                {
-                    Movie movie = GetMovieFromDirectory(movieDirectory1);
-                    if (movie == null)
-                    {
-                        _logger.LogInformation($"No movie found in directory: '{movieDirectory1}'");
-                        continue;
-                    }
-
-                    if (_movieDictionary.TryGetValue(movie.Title, out Movie dictionaryMovie))
-                    {
-                        dictionaryMovie.TrailerExists = movie.TrailerExists;
-                        await _hubContext.Clients.All.SendAsync("getAllMoviesInfo", dictionaryMovie);
-                    }
-                    else
-                    {
-                        taskList.Add(GetMovieInfoAsync(movie));
-                    }
-                }
-            }
-
-            if (taskList.Count > 0)
-            {
-                _ = await Task.WhenAll(taskList);
-            }
-
-            _movieDictionary.ToList().ForEach(mov =>
-            {
-                if (Directory.Exists(mov.Value.FilePath) == false)
-                {
-                    _ = _movieDictionary.TryRemove(mov.Value.FilePath, out Movie movie);
-                }
-            });
-
-            await _hubContext.Clients.All.SendAsync("completedAllMoviesInfo", _movieDictionary.Count);
+            _ = await Task.WhenAll(taskList);
         }
 
-        private void GetMovieDirectories(string directoryPath)
+        _movieDictionary.ToList().ForEach(mov =>
         {
-            _logger.LogInformation($"directoryPath is {directoryPath}");
-
-            try
+            if (Directory.Exists(mov.Value.FilePath) == false)
             {
-                _movieDirectories.Clear();
+                _ = _movieDictionary.TryRemove(mov.Value.FilePath, out Movie movie);
+            }
+        });
 
-                if (Directory.GetFiles(directoryPath).Length == 0)
+        await _hubContext.Clients.All.SendAsync("completedAllMoviesInfo", _movieDictionary.Count);
+    }
+
+    private void GetMovieDirectories(string directoryPath)
+    {
+        try
+        {
+            _movieDirectories.Clear();
+
+            if (Directory.GetFiles(directoryPath).Length == 0)
+            {
+                string[] subDirectories = Directory.GetDirectories(directoryPath);
+                if (Directory.GetFiles(subDirectories.FirstOrDefault()).Length == 0)
                 {
-                    var subDirectories = Directory.GetDirectories(directoryPath);
-                    if (!subDirectories.Any()) return;
-                    if (Directory.GetFiles(subDirectories.FirstOrDefault() ?? string.Empty).Length == 0)
+                    foreach (string directory in subDirectories)
                     {
-                        foreach (string directory in subDirectories)
-                        {
-                            GetMovieDirectories(directory);
-                        }
-                    }
-                    else
-                    {
-                        _movieDirectories.Add(directoryPath);
+                        GetMovieDirectories(directory);
                     }
                 }
                 else
@@ -119,164 +111,168 @@ namespace TrailerDownloader.SignalRHubs
                     _movieDirectories.Add(directoryPath);
                 }
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Error in GetMovieDirectories()");
+                _movieDirectories.Add(directoryPath);
             }
         }
-
-        private Movie GetMovieFromDirectory(string movieDirectory)
+        catch (Exception ex)
         {
-            if (Directory.GetFiles(movieDirectory).Length == 0)
-            {
-                return null;
-            }
+            _logger.LogError(ex, "Error in GetMovieDirectories()");
+        }
+    }
 
-            bool trailerExists = Directory.GetFiles(movieDirectory).Where(name => name.Contains("-trailer")).Count() > 0;
-            string filePath = Directory.GetFiles(movieDirectory).FirstOrDefault(file => !_excludedFileExtensions.Any(x => file.EndsWith(x)) && !file.Contains("-trailer"));
-            string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(.*", string.Empty).Trim().Replace("-trailer", string.Empty);
-            string year = Regex.Match(Path.GetFileNameWithoutExtension(filePath), @"\(\d*").Captures.FirstOrDefault()?.Value.Replace("(", string.Empty);
-
-            return new Movie
-            {
-                TrailerExists = trailerExists,
-                FilePath = Path.GetDirectoryName(filePath),
-                Title = title,
-                Year = year
-            };
+    private Movie GetMovieFromDirectory(string movieDirectory)
+    {
+        if (Directory.GetFiles(movieDirectory).Length == 0)
+        {
+            return null;
         }
 
-        public async void DownloadAllTrailers(IEnumerable<Movie> movieList)
+        bool trailerExists = Directory.GetFiles(movieDirectory).Where(name => name.Contains("-trailer")).Count() > 0;
+        string filePath = Directory.GetFiles(movieDirectory).FirstOrDefault(file => !_excludedFileExtensions.Any(x => file.EndsWith(x)) && !file.Contains("-trailer"));
+        string title = Regex.Replace(Path.GetFileNameWithoutExtension(filePath), @"\(.*", string.Empty).Trim().Replace("-trailer", string.Empty);
+        string year = Regex.Match(Path.GetFileNameWithoutExtension(filePath), @"\(\d*").Captures.FirstOrDefault()?.Value.Replace("(", string.Empty);
+
+        return new Movie
         {
-            foreach (Movie movie in movieList.OrderBy(movie => movie.Title))
+            TrailerExists = trailerExists,
+            FilePath = Path.GetDirectoryName(filePath),
+            Title = title,
+            Year = year
+        };
+    }
+
+    public async void DownloadAllTrailers(IEnumerable<Movie> movieList)
+    {
+        foreach (Movie movie in movieList.OrderBy(movie => movie.Title))
+        {
+            if (movie.TrailerExists == false && string.IsNullOrEmpty(movie.TrailerURL) == false)
             {
-                if (movie.TrailerExists == false && string.IsNullOrEmpty(movie.TrailerURL) == false)
+                if (DownloadTrailerAsync(movie).Result)
                 {
-                    if (DownloadTrailerAsync(movie).Result)
-                    {
-                        movie.TrailerExists = true;
-                        await _hubContext.Clients.All.SendAsync("downloadAllTrailers", movie);
-                    }
+                    movie.TrailerExists = true;
+                    await _hubContext.Clients.All.SendAsync("downloadAllTrailers", movie);
                 }
             }
-
-            await _hubContext.Clients.All.SendAsync("doneDownloadingAllTrailersListener", true);
         }
 
-        public bool DeleteAllTrailers(IEnumerable<Movie> movieList)
+        await _hubContext.Clients.All.SendAsync("doneDownloadingAllTrailersListener", true);
+    }
+
+    public bool DeleteAllTrailers(IEnumerable<Movie> movieList)
+    {
+        ParallelLoopResult result = Parallel.ForEach(movieList, async movie =>
         {
-            ParallelLoopResult result = Parallel.ForEach(movieList, async movie =>
+            if (movie.TrailerExists)
             {
-                if (movie.TrailerExists)
-                {
-                    string filePath = Directory.GetFiles(movie.FilePath).Where(name => name.Contains("-trailer")).FirstOrDefault();
-                    File.Delete(filePath);
-                    movie.TrailerExists = false;
-                    _movieDictionary.FirstOrDefault(mov => mov.Value.FilePath == movie.FilePath).Value.TrailerExists = false;
-                    await _hubContext.Clients.All.SendAsync("deleteAllTrailers", movie);
-                }
-            });
-
-            return result.IsCompleted;
-        }
-
-        private async Task<bool> DownloadTrailerAsync(Movie movie)
-        {
-            try
-            {
-                YoutubeClient youtube = new YoutubeClient();
-                StreamManifest streamManifest = await youtube.Videos.Streams.GetManifestAsync(movie.TrailerURL);
-
-                // Get highest quality muxed stream
-                IVideoStreamInfo streamInfo = streamManifest.GetMuxedStreams().GetWithHighestVideoQuality();
-
-                if (streamInfo != null)
-                {
-                    // Download the stream to file
-                    await youtube.Videos.Streams.DownloadAsync(streamInfo, Path.Combine(movie.FilePath, $"{movie.Title} ({movie.Year})-trailer.{streamInfo.Container}"));
-                    _logger.LogInformation($"Successfully downloaded trailer for {movie.Title}");
-                    return true;
-                }
-
-                return false;
+                string filePath = Directory.GetFiles(movie.FilePath).Where(name => name.Contains("-trailer")).FirstOrDefault();
+                File.Delete(filePath);
+                movie.TrailerExists = false;
+                _movieDictionary.FirstOrDefault(mov => mov.Value.FilePath == movie.FilePath).Value.TrailerExists = false;
+                await _hubContext.Clients.All.SendAsync("deleteAllTrailers", movie);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error downloading trailer for {movie.Title}\n{ex.Message}");
-                await _hubContext.Clients.All.SendAsync("downloadAllTrailers", movie);
-                return false;
-            }
-        }
+        });
 
-        private async Task<Movie> GetMovieInfoAsync(Movie movie)
+        return result.IsCompleted;
+    }
+
+    private async Task<bool> DownloadTrailerAsync(Movie movie)
+    {
+        try
         {
-            try
+            YoutubeClient youtube = new YoutubeClient();
+            StreamManifest streamManifest = await youtube.Videos.Streams.GetManifestAsync(movie.TrailerURL);
+
+            // Get highest quality muxed stream
+            IVideoStreamInfo streamInfo = streamManifest.GetMuxedStreams().GetWithHighestVideoQuality();
+
+            if (streamInfo != null)
             {
-                HttpClient httpClient = _httpClientFactory.CreateClient();
+                // Download the stream to file
+                await youtube.Videos.Streams.DownloadAsync(streamInfo, Path.Combine(movie.FilePath, $"{movie.Title} ({movie.Year})-trailer.{streamInfo.Container}"));
+                _logger.LogInformation($"Successfully downloaded trailer for {movie.Title}");
+                return true;
+            }
 
-                string uri = $"https://api.themoviedb.org/3/search/movie?language=en-US&query={movie.Title}&year={movie.Year}&api_key={_apiKey}";
-                HttpResponseMessage response = await httpClient.GetAsync(new Uri(uri));
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error downloading trailer for {movie.Title}\n{ex.Message}");
+            await _hubContext.Clients.All.SendAsync("downloadAllTrailers", movie);
+            return false;
+        }
+    }
 
-                if (response.IsSuccessStatusCode)
+    private async Task<Movie> GetMovieInfoAsync(Movie movie)
+    {
+        try
+        {
+            HttpClient httpClient = _httpClientFactory.CreateClient();
+
+            string uri = $"https://api.themoviedb.org/3/search/movie?language=en-US&query={movie.Title}&year={movie.Year}&api_key={_apiKey}";
+            HttpResponseMessage response = await httpClient.GetAsync(new Uri(uri));
+
+            if (response.IsSuccessStatusCode)
+            {
+                JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
+                JToken singleResult = results.FirstOrDefault(j => j.Value<string>("title") == movie.Title);
+
+                if (singleResult != null)
                 {
-                    JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
-                    JToken singleResult = results.FirstOrDefault(j => j.Value<string>("title") == movie.Title);
-
-                    if (singleResult != null)
-                    {
-                        movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{singleResult.Value<string>("poster_path")}";
-                        movie.Id = singleResult.Value<int>("id");
-                    }
-                    else if (results != null)
-                    {
-                        movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{results.First?.Value<string>("poster_path")}";
-                        movie.Id = results.First?.Value<int>("id");
-                    }
-
-                    movie.TrailerURL = await GetTrailerURL(movie.Id);
-                    await _hubContext.Clients.All.SendAsync("getAllMoviesInfo", movie);
-
-                    movie = _movieDictionary.GetOrAdd(movie.FilePath, movie);
-                    return movie;
+                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{singleResult.Value<string>("poster_path")}";
+                    movie.Id = singleResult.Value<int>("id");
+                }
+                else if (results != null)
+                {
+                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{results.First?.Value<string>("poster_path")}";
+                    movie.Id = results.First?.Value<int>("id");
                 }
 
-                return null;
+                movie.TrailerURL = await GetTrailerURL(movie.Id);
+                await _hubContext.Clients.All.SendAsync("getAllMoviesInfo", movie);
+
+                movie = _movieDictionary.GetOrAdd(movie.FilePath, movie);
+                return movie;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error getting movie info for {movie.Title}\n{ex.Message}");
-                return null;
-            }
+
+            return null;
         }
-
-        private async Task<string> GetTrailerURL(int? id)
+        catch (Exception ex)
         {
-            if (id != null)
-            {
-                HttpClient httpClient = _httpClientFactory.CreateClient();
-                string uri = $"https://api.themoviedb.org/3/movie/{id}/videos?api_key={_apiKey}&language={_trailerLanguage}";
+            _logger.LogError($"Error getting movie info for {movie.Title}\n{ex.Message}");
+            return null;
+        }
+    }
 
-                HttpResponseMessage response = await httpClient.GetAsync(new Uri(uri));
-                if (response.IsSuccessStatusCode)
+    private async Task<string> GetTrailerURL(int? id)
+    {
+        if (id != null)
+        {
+            HttpClient httpClient = _httpClientFactory.CreateClient();
+            string uri = $"https://api.themoviedb.org/3/movie/{id}/videos?api_key={_apiKey}&language={_trailerLanguage}";
+
+            HttpResponseMessage response = await httpClient.GetAsync(new Uri(uri));
+            if (response.IsSuccessStatusCode)
+            {
+                JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
+                if (results.Count() != 0)
                 {
-                    JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
-                    if (results.Count() != 0)
+                    foreach (JToken result in results)
                     {
-                        foreach (JToken result in results)
+                        if (result.Value<string>("site") == "YouTube")
                         {
-                            if (result.Value<string>("site") == "YouTube")
+                            if (result.Value<string>("type") == "Trailer")
                             {
-                                if (result.Value<string>("type") == "Trailer")
-                                {
-                                    return result.Value<string>("key");
-                                }
+                                return result.Value<string>("key");
                             }
                         }
                     }
                 }
             }
-
-            return string.Empty;
         }
+
+        return string.Empty;
     }
 }
