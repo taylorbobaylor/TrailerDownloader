@@ -96,25 +96,16 @@ public class MovieHub : Hub, ITrailerRepository
         {
             _movieDirectories.Clear();
 
-            if (Directory.GetFiles(directoryPath).Length == 0)
+            // Enumerate all subdirectories
+            var subDirectories = Directory.EnumerateDirectories(directoryPath, "*", SearchOption.AllDirectories);
+
+            // Add the movie directories to the collection
+            foreach (var subDirectory in subDirectories)
             {
-                string[] subDirectories = Directory.GetDirectories(directoryPath);
-                if (!subDirectories.Any()) return;
-                if (Directory.GetFiles(subDirectories.FirstOrDefault()).Length == 0)
+                if (Directory.GetFiles(subDirectory).Length > 0)
                 {
-                    foreach (string directory in subDirectories)
-                    {
-                        GetMovieDirectories(directory);
-                    }
+                    _movieDirectories.Add(subDirectory);
                 }
-                else
-                {
-                    _movieDirectories.Add(directoryPath);
-                }
-            }
-            else
-            {
-                _movieDirectories.Add(directoryPath);
             }
         }
         catch (Exception ex)
@@ -122,6 +113,7 @@ public class MovieHub : Hub, ITrailerRepository
             _logger.LogError(ex, "Error in GetMovieDirectories()");
         }
     }
+
 
     private Movie GetMovieFromDirectory(string movieDirectory)
     {
