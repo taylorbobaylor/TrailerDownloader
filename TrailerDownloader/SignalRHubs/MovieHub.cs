@@ -99,7 +99,7 @@ namespace TrailerDownloader.SignalRHubs
                 if (Directory.GetFiles(directoryPath).Length == 0)
                 {
                     string[] subDirectories = Directory.GetDirectories(directoryPath);
-                    if (Directory.GetFiles(subDirectories.FirstOrDefault()).Length == 0)
+                    if (Directory.GetFiles(subDirectories.FirstOrDefault() ?? string.Empty).Length == 0)
                     {
                         foreach (string directory in subDirectories)
                         {
