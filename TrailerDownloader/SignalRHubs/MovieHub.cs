@@ -100,12 +100,20 @@ public class MovieHub : Hub, ITrailerRepository
             var subDirectories = Directory.EnumerateDirectories(directoryPath, "*", SearchOption.AllDirectories);
 
             // Add the movie directories to the collection
+            bool hasSubdirectories = false;
             foreach (var subDirectory in subDirectories)
             {
-                if (Directory.GetFiles(subDirectory).Length > 0)
+                if (Directory.GetDirectories(subDirectory).Length > 0)
                 {
                     _movieDirectories.Add(subDirectory);
+                    hasSubdirectories = true;
                 }
+            }
+
+            // If no subdirectories were added, add the main directoryPath
+            if (!hasSubdirectories)
+            {
+                _movieDirectories.Add(directoryPath);
             }
         }
         catch (Exception ex)
