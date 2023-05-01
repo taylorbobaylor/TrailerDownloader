@@ -46,7 +46,7 @@ public class MovieHub : Hub, ITrailerRepository
         }
     }
 
-    public async void GetAllMoviesInfo()
+    public async Task GetAllMoviesInfo()
     {
         GetMovieDirectories(_mainMovieDirectory);
         List<Task<Movie>> taskList = new List<Task<Movie>>();
@@ -65,7 +65,7 @@ public class MovieHub : Hub, ITrailerRepository
                 if (_movieDictionary.TryGetValue(movie.Title, out Movie dictionaryMovie))
                 {
                     dictionaryMovie.TrailerExists = movie.TrailerExists;
-                    await _hubContext.Clients.All.SendAsync("getAllMoviesInfo", dictionaryMovie);
+                    await _hubContext.Clients.All.SendAsync("getAllMoviesInfo", dictionaryMovie).ConfigureAwait(false);
                 }
                 else
                 {
@@ -76,7 +76,7 @@ public class MovieHub : Hub, ITrailerRepository
 
         if (taskList.Count > 0)
         {
-            _ = await Task.WhenAll(taskList);
+            _ = await Task.WhenAll(taskList).ConfigureAwait(false);
         }
 
         _movieDictionary.ToList().ForEach(mov =>
@@ -87,7 +87,7 @@ public class MovieHub : Hub, ITrailerRepository
             }
         });
 
-        await _hubContext.Clients.All.SendAsync("completedAllMoviesInfo", _movieDictionary.Count);
+        await _hubContext.Clients.All.SendAsync("completedAllMoviesInfo", _movieDictionary.Count).ConfigureAwait(false);
     }
 
     private void GetMovieDirectories(string directoryPath)
