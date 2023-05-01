@@ -92,6 +92,8 @@ namespace TrailerDownloader.SignalRHubs
 
         private void GetMovieDirectories(string directoryPath)
         {
+            _logger.LogInformation($"directoryPath is {directoryPath}");
+
             try
             {
                 _movieDirectories.Clear();
