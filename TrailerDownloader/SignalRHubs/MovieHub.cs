@@ -105,6 +105,8 @@ public class MovieHub : Hub, ITrailerRepository
             foreach (var subDirectory in subDirectories)
             {
                 if (Directory.GetDirectories(subDirectory).Length <= 0) continue;
+                if (!subDirectory.Contains("Subs")) continue;
+                if (!subDirectory.Contains("Subtitles")) continue;
                 _movieDirectories.Add(subDirectory);
                 hasSubdirectories = true;
             }
