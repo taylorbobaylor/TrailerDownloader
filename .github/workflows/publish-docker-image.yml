@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - update-gh-actions
 
 jobs:
   push_to_registry:
