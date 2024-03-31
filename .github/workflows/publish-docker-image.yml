@@ -1,9 +1,10 @@
-name: Publish Docker image
+name: Publish Docker image and Windows Executable
 
 on:
   push:
     branches:
       - master
+      - update-gh-actions
 
 jobs:
   push_to_registry:
@@ -31,4 +32,36 @@ jobs:
           context: .
           push: true
           tags: taylorbobaylor/movie-trailer-downloader:latest
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
+          
+  build_windows_executable:
+    name: Build Windows Executable
+    runs-on: windows-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Build Windows executable
+        run: echo "Build your Windows executable here"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./path/to/your/windows/executable.exe
+          asset_name: windows-executable.exe
+          asset_content_type: application/octet-stream
