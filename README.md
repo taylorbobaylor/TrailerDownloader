@@ -9,7 +9,7 @@ Downloads all missing trailers for movies in your Plex library. When it download
 ```bash
 docker run -d \
   --name=movie-trailer-downloader \
-  -p 6767:80 \
+  -p 6767:8080 \
   -v /path/to/movies:/movies \
   taylorbobaylor/movie-trailer-downloader
 ```
