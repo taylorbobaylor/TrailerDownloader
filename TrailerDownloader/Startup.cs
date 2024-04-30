@@ -22,14 +22,7 @@ namespace TrailerDownloader
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors(options =>
-            {
-                options.AddPolicy("CorsPolicy", builder =>
-                builder.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
-                .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials());
-            });
+            ConfigureCors(services);
 
             services.AddControllersWithViews();
 
@@ -44,10 +37,7 @@ namespace TrailerDownloader
             services.AddScoped<IConfigRepository, ConfigRepository>();
             services.AddScoped<ITrailerRepository, MovieHub>();
 
-            services.AddSignalR(x =>
-            {
-                x.MaximumReceiveMessageSize = 102400000;
-            });
+            ConfigureSignalR(services);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -92,6 +82,26 @@ namespace TrailerDownloader
                     // Use this line to serve the React development server
                     spa.UseProxyToSpaDevelopmentServer("http://localhost:3000");
                 }
+            });
+        }
+
+        private void ConfigureCors(IServiceCollection services)
+        {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("CorsPolicy", builder =>
+                builder.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials());
+            });
+        }
+
+        private void ConfigureSignalR(IServiceCollection services)
+        {
+            services.AddSignalR(x =>
+            {
+                x.MaximumReceiveMessageSize = 102400000;
             });
         }
     }
