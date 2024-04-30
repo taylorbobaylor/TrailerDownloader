@@ -28,13 +28,27 @@ namespace TrailerDownloader.Repositories
 
         public bool SaveConfig(Config configs)
         {
-            if (Directory.Exists(configs.MediaDirectory) == false)
+            if (configs == null)
             {
                 return false;
             }
 
-            _fileIOService.WriteAllText(_configPath, JsonConvert.SerializeObject(configs));
-            return true;
+            string directoryPath = Path.GetDirectoryName(_configPath);
+            if (!Directory.Exists(directoryPath))
+            {
+                return false;
+            }
+
+            try
+            {
+                _fileIOService.WriteAllText(_configPath, JsonConvert.SerializeObject(configs));
+                return true;
+            }
+            catch (IOException ex)
+            {
+                // Log the exception if logging is available
+                throw ex;
+            }
         }
     }
 }

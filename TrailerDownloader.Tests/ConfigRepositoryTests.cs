@@ -4,6 +4,7 @@ using TrailerDownloader.Repositories;
 using TrailerDownloader.Models;
 using TrailerDownloader.Services;
 using Newtonsoft.Json;
+using System;
 
 namespace TrailerDownloader.Tests
 {
@@ -47,6 +48,57 @@ namespace TrailerDownloader.Tests
             Assert.Equal("en", result.TrailerLanguage);
         }
 
-        // Additional tests to be added here
+        [Fact]
+        public void SaveConfig_WritesConfigToFile_WhenConfigIsValid()
+        {
+            // Arrange
+            var configData = new Config
+            {
+                MediaDirectory = "test_media_directory",
+                TrailerLanguage = "en"
+            };
+            var mockFileIO = new Mock<IFileIOService>();
+            var configRepository = new ConfigRepository(mockFileIO.Object);
+
+            // Act
+            var result = configRepository.SaveConfig(configData);
+
+            // Assert
+            Assert.True(result);
+            mockFileIO.Verify(x => x.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        }
+
+        [Fact]
+        public void SaveConfig_ReturnsFalse_WhenConfigIsNull()
+        {
+            // Arrange
+            var mockFileIO = new Mock<IFileIOService>();
+            var configRepository = new ConfigRepository(mockFileIO.Object);
+
+            // Act
+            var result = configRepository.SaveConfig(null);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void SaveConfig_HandlesIOException_WhenFileCannotBeWritten()
+        {
+            // Arrange
+            var configData = new Config
+            {
+                MediaDirectory = "test_media_directory",
+                TrailerLanguage = "en"
+            };
+            var mockFileIO = new Mock<IFileIOService>();
+            mockFileIO.Setup(x => x.WriteAllText(It.IsAny<string>(), It.IsAny<string>()))
+                      .Throws(new IOException());
+            var configRepository = new ConfigRepository(mockFileIO.Object);
+
+            // Act & Assert
+            var exception = Record.Exception(() => configRepository.SaveConfig(configData));
+            Assert.IsType<IOException>(exception);
+        }
     }
 }
