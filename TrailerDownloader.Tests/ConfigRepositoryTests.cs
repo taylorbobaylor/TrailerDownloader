@@ -2,7 +2,7 @@ using Xunit;
 using Moq;
 using TrailerDownloader.Repositories;
 using TrailerDownloader.Models;
-using System.IO;
+using TrailerDownloader.Services;
 using Newtonsoft.Json;
 
 namespace TrailerDownloader.Tests
@@ -13,13 +13,14 @@ namespace TrailerDownloader.Tests
         public void ConfigRepository_Creation_Success()
         {
             // Arrange
-            var mockConfig = new Mock<IConfigRepository>();
+            var mockFileIO = new Mock<IFileIOService>();
+            var configRepository = new ConfigRepository(mockFileIO.Object);
 
             // Act
-            var configRepository = mockConfig.Object;
+            var result = configRepository != null;
 
             // Assert
-            Assert.NotNull(configRepository);
+            Assert.True(result);
         }
 
         [Fact]
@@ -34,6 +35,7 @@ namespace TrailerDownloader.Tests
             var configJson = JsonConvert.SerializeObject(configData);
             var mockFileIO = new Mock<IFileIOService>();
             mockFileIO.Setup(x => x.ReadAllText(It.IsAny<string>())).Returns(configJson);
+            mockFileIO.Setup(x => x.Exists(It.IsAny<string>())).Returns(true);
             var configRepository = new ConfigRepository(mockFileIO.Object);
 
             // Act
