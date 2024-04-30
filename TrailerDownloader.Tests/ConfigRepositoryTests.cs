@@ -1,6 +1,6 @@
 using Xunit;
 using Moq;
-using TrailerDownloader.Services;
+using TrailerDownloader.Repositories;
 
 namespace TrailerDownloader.Tests
 {
