@@ -1,18 +1,25 @@
 using Newtonsoft.Json;
 using System.IO;
 using TrailerDownloader.Models;
+using TrailerDownloader.Services;
 
 namespace TrailerDownloader.Repositories
 {
     public class ConfigRepository : IConfigRepository
     {
+        private readonly IFileIOService _fileIOService;
         private static readonly string _configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+
+        public ConfigRepository(IFileIOService fileIOService)
+        {
+            _fileIOService = fileIOService;
+        }
 
         public Config GetConfig()
         {
-            if (File.Exists(_configPath))
+            if (_fileIOService.Exists(_configPath))
             {
-                string json = File.ReadAllText(_configPath);
+                string json = _fileIOService.ReadAllText(_configPath);
                 return JsonConvert.DeserializeObject<Config>(json);
             }
 
@@ -26,7 +33,7 @@ namespace TrailerDownloader.Repositories
                 return false;
             }
 
-            File.WriteAllText(_configPath, JsonConvert.SerializeObject(configs));
+            _fileIOService.WriteAllText(_configPath, JsonConvert.SerializeObject(configs));
             return true;
         }
     }
