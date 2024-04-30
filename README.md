@@ -3,6 +3,12 @@
 ## Description
 Downloads all missing trailers for movies in your Plex library. When it downloads, it will place the trailer in the same folder the movie is in with the name {MovieTitle}-trailer.
 
+## Recent Changes
+- Migrated backend to .NET 8 for enhanced performance and security.
+- Redesigned frontend using React with TypeScript for a more responsive and dynamic user interface.
+- Integrated NX for monorepo management to streamline workflows between frontend and backend development.
+- Added comprehensive unit and integration testing frameworks for .NET (xUnit, Moq) and React (Jest).
+
 ## Installation
 
 ### docker cli
@@ -117,22 +123,3 @@ It will show tasks that you can run with Nx.
 - [Join the community](https://nx.dev/community)
 - [Subscribe to the Nx Youtube Channel](https://www.youtube.com/@nxdevtools)
 - [Follow us on Twitter](https://twitter.com/nxdevtools)
-
-# TrailerDownloader
-
-## Description
-Downloads all trailers for movies in your Plex library
-
-## docker cli
-```bash
-docker run -d \
-  --name=movie-trailer-downloader \
-  -p 6767:80 \
-  -v /path/to/movies:/movies \
-  taylorbobaylor/movie-trailer-downloader
-```
-
-[Docker Hub Repo](https://hub.docker.com/repository/docker/taylorbobaylor/movie-trailer-downloader)
-
-## Demo
-![til](./TrailerDownloader/Demo/TrailerDownloader.gif)
