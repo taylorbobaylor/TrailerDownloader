@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppBar, Toolbar, Typography, Container, Box, CssBaseline, ThemeProvider, createTheme, Card, CardContent, TextField, Button } from '@mui/material';
+import axios from 'axios';
 import './App.css';
 
 interface Movie {
@@ -14,6 +15,7 @@ interface SearchBarProps {
 
 interface MovieListProps {
   movies: Movie[];
+  onDownload: (movieId: number) => void;
 }
 
 const theme = createTheme({
@@ -61,7 +63,7 @@ function SearchBar({ onSearch }: SearchBarProps) {
   );
 }
 
-function MovieList({ movies }: MovieListProps) {
+function MovieList({ movies, onDownload }: MovieListProps) {
   return (
     <Box sx={{ my: 4 }}>
       {movies.map((movie: Movie) => (
@@ -70,7 +72,7 @@ function MovieList({ movies }: MovieListProps) {
             <Typography variant="h5" component="div">
               {movie.title}
             </Typography>
-            <Button variant="contained" sx={{ mt: 2 }} onClick={() => {/* Download trailer logic here */}}>
+            <Button variant="contained" sx={{ mt: 2 }} onClick={() => onDownload(movie.id)}>
               Download Trailer
             </Button>
           </CardContent>
@@ -81,20 +83,38 @@ function MovieList({ movies }: MovieListProps) {
 }
 
 function App() {
-  const [movies, setMovies] = useState<Movie[]>([
-    // Placeholder for initial movie data
-    { id: 1, title: 'Movie 1', trailerUrl: '#' },
-    { id: 2, title: 'Movie 2', trailerUrl: '#' },
-  ]);
+  const [movies, setMovies] = useState<Movie[]>([]);
+
+  useEffect(() => {
+    // Fetch initial movie data on component mount
+    // This can be replaced with an actual API call if needed
+    setMovies([
+      { id: 1, title: 'Movie 1', trailerUrl: '#' },
+      { id: 2, title: 'Movie 2', trailerUrl: '#' },
+    ]);
+  }, []);
 
   const handleSearch = (searchTerm: string) => {
-    // Logic to search for movies and update state
-    console.log('Search for:', searchTerm);
-    // Placeholder for search results
-    setMovies([
-      { id: 3, title: 'Searched Movie 1', trailerUrl: '#' },
-      { id: 4, title: 'Searched Movie 2', trailerUrl: '#' },
-    ]);
+    axios.get(`/Movies/search?query=${encodeURIComponent(searchTerm)}`)
+      .then(response => {
+        setMovies(response.data);
+      })
+      .catch(error => {
+        console.error('Error fetching search results:', error);
+      });
+  };
+
+  const handleDownload = (movieId: number) => {
+    axios.get(`/Movies/download/${movieId}`)
+      .then(response => {
+        const trailerUrl = response.data.trailerDownloadUrl;
+        // This is where you would handle the actual download,
+        // for example by setting the window location to the trailer URL
+        window.location.href = trailerUrl;
+      })
+      .catch(error => {
+        console.error('Error downloading trailer:', error);
+      });
   };
 
   return (
@@ -110,7 +130,7 @@ function App() {
         </AppBar>
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
           <SearchBar onSearch={handleSearch} />
-          <MovieList movies={movies} />
+          <MovieList movies={movies} onDownload={handleDownload} />
         </Container>
         <Box component="footer" sx={{ bgcolor: 'background.paper', py: 6 }}>
           <Container maxWidth="lg">
