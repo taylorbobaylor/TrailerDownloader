@@ -11,7 +11,14 @@ builder.Services.AddHttpClient<TmdbService>(client =>
     client.BaseAddress = new Uri("https://api.themoviedb.org/3");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
-builder.Services.AddSingleton<TmdbService>();
+
+// Retrieve the API key from configuration and register TmdbService with it
+var apiKey = builder.Configuration["TMDB_API_KEY"];
+if (string.IsNullOrEmpty(apiKey))
+{
+    throw new InvalidOperationException("The TMDB API key is not configured.");
+}
+builder.Services.AddSingleton(new TmdbService(builder.Services.BuildServiceProvider().GetService<IMemoryCache>(), new HttpClient(), apiKey));
 
 var app = builder.Build();
 
