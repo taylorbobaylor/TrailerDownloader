@@ -1,42 +1,44 @@
 # TrailerDownloader
 
 ## Description
-Downloads all missing trailers for movies in your Plex library. When it downloads, it will place the trailer in the same folder the movie is in with the name {MovieTitle}-trailer.
+TrailerDownloader is an application that downloads missing trailers for movies in your Plex library and places them in the same folder as the movie with a specific naming convention. The application has been overhauled to use .NET 8 for the backend and React with TypeScript for the frontend.
 
-## Installation
+## System Requirements
+- .NET 8 SDK
+- Node.js (for React frontend)
 
-### docker cli
-```bash
-docker run -d \
-  --name=movie-trailer-downloader \
-  -p 6767:8080 \
-  -v /path/to/movies:/movies \
-  taylorbobaylor/movie-trailer-downloader
-```
+## Installation and Setup
 
-[Docker Hub Repo](https://hub.docker.com/repository/docker/taylorbobaylor/movie-trailer-downloader)
+### Backend (.NET 8 API)
+1. Clone the repository and switch to the `fresh-start` branch.
+2. Navigate to the `TrailerDownloaderAPI` directory.
+3. Run `dotnet restore` to install backend dependencies.
+4. Run `dotnet run` to start the API server.
 
-### Windows
-1. Download the latest TrailerDownloaderWindows.zip [here](https://github.com/taylorbobaylor/TrailerDownloader/releases/latest)
-2. Extract the zip to your preferred directory.
-3. Run TrailerDownloader.exe
+### Frontend (React with TypeScript)
+1. Navigate to the `clientapp` directory.
+2. Run `npm install` to install frontend dependencies.
+3. Run `npm start` to start the React development server.
+
+## API Endpoints
+- Search for movies: `GET /Movies/search?query={query}`
+- Download movie trailers: `GET /Movies/download/{movieId}`
+
+## Configuration
+- The TMDB API key should be set in the `appsettings.json` file under the `TMDB_API_KEY` property.
+
+## Docker Usage
+The Docker setup has been updated to work with the new .NET 8 backend and React frontend. Instructions will be provided soon.
 
 ## Demo
-![til](./TrailerDownloader/Demo/TrailerDownloader.gif)
+The demo will be updated to showcase the new React frontend and .NET 8 backend functionality.
 
 ## Structure
-This app expects your movies to be in a specific structure. If your movies do not match the format below, you will not be able to use this.
-
--Movies  
----Movie Title 1 (2014)  
------Movie Title 1 (2014).mp4  
----Movie Title 2 (2009)  
------Movie Title 2 (2009).mkv 
+The expected structure for movie directories remains the same as the previous version of the application.
 
 ## Donate
-
-I did this for fun and a learning experience but feel free to buy me a cup of coffee so I can continue to make this app awesome!
+If you find this application useful, consider buying me a cup of coffee to support its continued development!
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ZRP9ZGW3RDDRN)
 
-Hopefully this will help someone and enjoy!
+Enjoy the new and improved TrailerDownloader!
