@@ -10,15 +10,19 @@ builder.Services.AddHttpClient<TmdbService>(client =>
 {
     client.BaseAddress = new Uri("https://api.themoviedb.org/3");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
+.ConfigureHttpClient((serviceProvider, client) =>
+{
+    var apiKey = serviceProvider.GetRequiredService<IConfiguration>()["TMDB_API_KEY"];
+    if (string.IsNullOrEmpty(apiKey))
+    {
+        throw new InvalidOperationException("The TMDB API key is not configured.");
+    }
+    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
 });
 
-// Retrieve the API key from configuration and register TmdbService with it
-var apiKey = builder.Configuration["TMDB_API_KEY"];
-if (string.IsNullOrEmpty(apiKey))
-{
-    throw new InvalidOperationException("The TMDB API key is not configured.");
-}
-builder.Services.AddSingleton(new TmdbService(builder.Services.BuildServiceProvider().GetService<IMemoryCache>(), new HttpClient(), apiKey));
+// Add controllers
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
@@ -29,27 +33,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseRouting();
 
-var summaries = new[]
+app.UseEndpoints(endpoints =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    endpoints.MapControllers();
+});
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+// app.UseHttpsRedirection(); // Disabled HTTPS redirection for local development
 
 app.Run();
 
