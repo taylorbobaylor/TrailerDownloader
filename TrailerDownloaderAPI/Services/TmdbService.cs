@@ -43,6 +43,58 @@ public class TmdbService
         }
     }
 
+    public async Task<string> SearchMoviesAsync(string query)
+    {
+        var cacheKey = $"search-results-{query}";
+        var cacheFilePath = Path.Combine(_cacheFolderPath, $"{cacheKey}.json");
+
+        if (_cache.TryGetValue(cacheKey, out string cachedResults))
+        {
+            return cachedResults;
+        }
+        else
+        {
+            var response = await _httpClient.GetAsync($"{_baseUrl}/search/movie?api_key={_apiKey}&query={Uri.EscapeDataString(query)}");
+            response.EnsureSuccessStatusCode();
+            var searchResults = await response.Content.ReadAsStringAsync();
+            var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(1));
+            _cache.Set(cacheKey, searchResults, cacheEntryOptions);
+            await File.WriteAllTextAsync(cacheFilePath, searchResults);
+            return searchResults;
+        }
+    }
+
+    public async Task<string> GetMovieTrailerDownloadUrlAsync(int movieId)
+    {
+        var cacheKey = $"trailer-download-url-{movieId}";
+        var cacheFilePath = Path.Combine(_cacheFolderPath, $"{cacheKey}.json");
+
+        if (_cache.TryGetValue(cacheKey, out string cachedDownloadUrl))
+        {
+            return cachedDownloadUrl;
+        }
+        else
+        {
+            var trailersJson = await GetMovieTrailersAsync(movieId.ToString());
+            using (JsonDocument doc = JsonDocument.Parse(trailersJson))
+            {
+                var results = doc.RootElement.GetProperty("results");
+                foreach (var result in results.EnumerateArray())
+                {
+                    if (result.GetProperty("type").GetString() == "Trailer")
+                    {
+                        var trailerDownloadUrl = result.GetProperty("key").GetString();
+                        var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(1));
+                        _cache.Set(cacheKey, trailerDownloadUrl, cacheEntryOptions);
+                        await File.WriteAllTextAsync(cacheFilePath, trailerDownloadUrl);
+                        return trailerDownloadUrl;
+                    }
+                }
+            }
+            return null; // No trailer found
+        }
+    }
+
     private bool IsCacheValid(string cacheFilePath)
     {
         var creationTime = File.GetCreationTime(cacheFilePath);
