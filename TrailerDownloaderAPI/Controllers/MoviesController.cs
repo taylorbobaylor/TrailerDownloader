@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -9,10 +10,12 @@ namespace TrailerDownloaderAPI.Controllers
     public class MoviesController : ControllerBase
     {
         private readonly TmdbService _tmdbService;
+        private readonly ILogger<MoviesController> _logger;
 
-        public MoviesController(TmdbService tmdbService)
+        public MoviesController(TmdbService tmdbService, ILogger<MoviesController> logger)
         {
             _tmdbService = tmdbService;
+            _logger = logger;
         }
 
         [HttpGet("search")]
@@ -30,7 +33,7 @@ namespace TrailerDownloaderAPI.Controllers
             }
             catch (System.Exception ex)
             {
-                // Log the exception details here for debugging
+                _logger.LogError(ex, "An error occurred while processing the search request.");
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
@@ -55,7 +58,7 @@ namespace TrailerDownloaderAPI.Controllers
             }
             catch (System.Exception ex)
             {
-                // Log the exception details here for debugging
+                _logger.LogError(ex, "An error occurred while processing the download request.");
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
