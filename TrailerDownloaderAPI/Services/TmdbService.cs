@@ -26,9 +26,76 @@ public class TmdbService
         {
             Directory.CreateDirectory(_cacheFolderPath);
         }
+    }
 
-        // Configure HttpClient with the TMDB API key
-        _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+    public async Task<string> SearchMoviesAsync(string query)
+    {
+        var cacheKey = $"search-results-{query}";
+        var cacheFilePath = Path.Combine(_cacheFolderPath, $"{cacheKey}.json");
+
+        if (_cache.TryGetValue(cacheKey, out string cachedResults))
+        {
+            return cachedResults;
+        }
+        else
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{_baseUrl}/search/movie?api_key={_apiKey}&query={Uri.EscapeDataString(query)}");
+                response.EnsureSuccessStatusCode();
+                var searchResults = await response.Content.ReadAsStringAsync();
+                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(1));
+                _cache.Set(cacheKey, searchResults, cacheEntryOptions);
+                await File.WriteAllTextAsync(cacheFilePath, searchResults);
+                return searchResults;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching movies with query {Query}", query);
+                throw;
+            }
+        }
+    }
+
+    public async Task<string> GetMovieTrailerDownloadUrlAsync(int movieId)
+    {
+        var cacheKey = $"trailer-download-url-{movieId}";
+        var cacheFilePath = Path.Combine(_cacheFolderPath, $"{cacheKey}.json");
+
+        if (_cache.TryGetValue(cacheKey, out string cachedDownloadUrl))
+        {
+            return cachedDownloadUrl;
+        }
+        else
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{_baseUrl}/movie/{movieId}/videos?api_key={_apiKey}");
+                response.EnsureSuccessStatusCode();
+                var trailersJson = await response.Content.ReadAsStringAsync();
+                using (JsonDocument doc = JsonDocument.Parse(trailersJson))
+                {
+                    var results = doc.RootElement.GetProperty("results");
+                    foreach (var result in results.EnumerateArray())
+                    {
+                        if (result.GetProperty("type").GetString() == "Trailer")
+                        {
+                            var trailerDownloadUrl = result.GetProperty("key").GetString();
+                            var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(1));
+                            _cache.Set(cacheKey, trailerDownloadUrl, cacheEntryOptions);
+                            await File.WriteAllTextAsync(cacheFilePath, trailerDownloadUrl);
+                            return trailerDownloadUrl;
+                        }
+                    }
+                }
+                return null; // No trailer found
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting trailer download URL for movie ID {MovieId}", movieId);
+                throw;
+            }
+        }
     }
 
     // ... (rest of the code remains unchanged)
