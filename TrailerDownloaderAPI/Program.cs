@@ -1,9 +1,17 @@
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Register TmdbService and configure HttpClient
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<TmdbService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.themoviedb.org/3");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+builder.Services.AddSingleton<TmdbService>();
 
 var app = builder.Build();
 
