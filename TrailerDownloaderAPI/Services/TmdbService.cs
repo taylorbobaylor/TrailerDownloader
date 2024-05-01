@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Net.Http;
@@ -9,15 +10,15 @@ public class TmdbService
 {
     private readonly IMemoryCache _cache;
     private readonly HttpClient _httpClient;
+    private readonly ILogger<TmdbService> _logger;
     private readonly string _baseUrl = "https://api.themoviedb.org/3";
-    private readonly string _apiKey; // This should be stored securely and injected through configuration
     private readonly string _cacheFolderPath = "Cache"; // Path to the cache folder
 
-    public TmdbService(IMemoryCache cache, HttpClient httpClient, string apiKey)
+    public TmdbService(IMemoryCache cache, HttpClient httpClient, ILogger<TmdbService> logger)
     {
         _cache = cache;
         _httpClient = httpClient;
-        _apiKey = apiKey;
+        _logger = logger;
         if (!Directory.Exists(_cacheFolderPath))
         {
             Directory.CreateDirectory(_cacheFolderPath);
@@ -36,10 +37,18 @@ public class TmdbService
         }
         else
         {
-            // Fetch from API and cache
-            var trailers = await FetchMovieTrailersFromApiAsync(movieId);
-            await File.WriteAllTextAsync(cacheFilePath, trailers);
-            return trailers;
+            try
+            {
+                // Fetch from API and cache
+                var trailers = await FetchMovieTrailersFromApiAsync(movieId);
+                await File.WriteAllTextAsync(cacheFilePath, trailers);
+                return trailers;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching movie trailers from API for movie ID {MovieId}", movieId);
+                throw;
+            }
         }
     }
 
@@ -54,13 +63,21 @@ public class TmdbService
         }
         else
         {
-            var response = await _httpClient.GetAsync($"{_baseUrl}/search/movie?api_key={_apiKey}&query={Uri.EscapeDataString(query)}");
-            response.EnsureSuccessStatusCode();
-            var searchResults = await response.Content.ReadAsStringAsync();
-            var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(1));
-            _cache.Set(cacheKey, searchResults, cacheEntryOptions);
-            await File.WriteAllTextAsync(cacheFilePath, searchResults);
-            return searchResults;
+            try
+            {
+                var response = await _httpClient.GetAsync($"{_baseUrl}/search/movie?query={Uri.EscapeDataString(query)}");
+                response.EnsureSuccessStatusCode();
+                var searchResults = await response.Content.ReadAsStringAsync();
+                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(1));
+                _cache.Set(cacheKey, searchResults, cacheEntryOptions);
+                await File.WriteAllTextAsync(cacheFilePath, searchResults);
+                return searchResults;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching movies with query {Query}", query);
+                throw;
+            }
         }
     }
 
@@ -75,23 +92,31 @@ public class TmdbService
         }
         else
         {
-            var trailersJson = await GetMovieTrailersAsync(movieId.ToString());
-            using (JsonDocument doc = JsonDocument.Parse(trailersJson))
+            try
             {
-                var results = doc.RootElement.GetProperty("results");
-                foreach (var result in results.EnumerateArray())
+                var trailersJson = await GetMovieTrailersAsync(movieId.ToString());
+                using (JsonDocument doc = JsonDocument.Parse(trailersJson))
                 {
-                    if (result.GetProperty("type").GetString() == "Trailer")
+                    var results = doc.RootElement.GetProperty("results");
+                    foreach (var result in results.EnumerateArray())
                     {
-                        var trailerDownloadUrl = result.GetProperty("key").GetString();
-                        var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(1));
-                        _cache.Set(cacheKey, trailerDownloadUrl, cacheEntryOptions);
-                        await File.WriteAllTextAsync(cacheFilePath, trailerDownloadUrl);
-                        return trailerDownloadUrl;
+                        if (result.GetProperty("type").GetString() == "Trailer")
+                        {
+                            var trailerDownloadUrl = result.GetProperty("key").GetString();
+                            var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(1));
+                            _cache.Set(cacheKey, trailerDownloadUrl, cacheEntryOptions);
+                            await File.WriteAllTextAsync(cacheFilePath, trailerDownloadUrl);
+                            return trailerDownloadUrl;
+                        }
                     }
                 }
+                return null; // No trailer found
             }
-            return null; // No trailer found
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting trailer download URL for movie ID {MovieId}", movieId);
+                throw;
+            }
         }
     }
 
@@ -103,8 +128,16 @@ public class TmdbService
 
     private async Task<string> FetchMovieTrailersFromApiAsync(string movieId)
     {
-        var response = await _httpClient.GetAsync($"{_baseUrl}/movie/{movieId}/videos?api_key={_apiKey}");
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync();
+        try
+        {
+            var response = await _httpClient.GetAsync($"{_baseUrl}/movie/{movieId}/videos");
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching movie trailers from API for movie ID {MovieId}", movieId);
+            throw;
+        }
     }
 }
