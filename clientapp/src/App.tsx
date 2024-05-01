@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Container, Box, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { AppBar, Toolbar, Typography, Container, Box, CssBaseline, ThemeProvider, createTheme, Card, CardContent } from '@mui/material';
 import './App.css';
 
 const theme = createTheme({
@@ -19,6 +19,30 @@ const theme = createTheme({
   },
 });
 
+function MovieList() {
+  // Placeholder for movie data fetching and state
+  const movies = [
+    { id: 1, title: 'Movie 1', trailerUrl: '#' },
+    { id: 2, title: 'Movie 2', trailerUrl: '#' },
+    // More movies would be fetched and listed here
+  ];
+
+  return (
+    <Box sx={{ my: 4 }}>
+      {movies.map((movie) => (
+        <Card key={movie.id} sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography variant="h5" component="div">
+              {movie.title}
+            </Typography>
+            {/* Other movie details and actions can be added here */}
+          </CardContent>
+        </Card>
+      ))}
+    </Box>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
@@ -32,11 +56,7 @@ function App() {
           </Toolbar>
         </AppBar>
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-          {/* Content goes here */}
-          <Typography paragraph>
-            Welcome to TrailerDownloader. Here you can manage and download movie trailers for your Plex library.
-          </Typography>
-          {/* Additional content and components will be added here */}
+          <MovieList />
         </Container>
         <Box component="footer" sx={{ bgcolor: 'background.paper', py: 6 }}>
           <Container maxWidth="lg">
