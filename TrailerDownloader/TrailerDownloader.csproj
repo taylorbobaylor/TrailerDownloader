@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- Exclude generated assembly attribute files from the build -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/*.AssemblyAttributes.cs</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
