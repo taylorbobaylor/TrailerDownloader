@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TrailerDownloader\TrailerDownloader.csproj" />
+    <ProjectReference Include="../TrailerDownloader.csproj" />
   </ItemGroup>
 
 </Project>
