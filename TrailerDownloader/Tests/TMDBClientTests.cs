@@ -45,6 +45,47 @@ namespace TrailerDownloader.Tests
             Assert.Equal("http://example.com/", result.images.base_url);
         }
 
-        // Additional test methods for SearchMoviesAsync and GetMovieDetailsAsync will be added here.
+        /// <summary>
+        /// Tests that SearchMoviesAsync returns search results for a given query.
+        /// </summary>
+        [Fact]
+        public async Task SearchMoviesAsync_ReturnsSearchResults()
+        {
+            // Arrange
+            var query = "Inception";
+            _server.Given(Request.Create().WithPath("/3/search/movie").WithParam("query", query).UsingGet())
+                .RespondWith(Response.Create().WithSuccess().WithBody("{ 'results': [{ 'id': 1, 'title': 'Inception' }] }"));
+
+            // Act
+            var result = await _client.SearchMoviesAsync(query);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Single(result.results);
+            Assert.Equal("Inception", result.results[0].title);
+        }
+
+        /// <summary>
+        /// Tests that GetMovieDetailsAsync returns detailed information for a specific movie ID.
+        /// </summary>
+        [Fact]
+        public async Task GetMovieDetailsAsync_ReturnsMovieDetails()
+        {
+            // Arrange
+            var movieId = 1;
+            _server.Given(Request.Create().WithPath($"/3/movie/{movieId}").UsingGet())
+                .RespondWith(Response.Create().WithSuccess().WithBody("{ 'id': 1, 'title': 'Inception', 'release_date': '2010-07-16' }"));
+
+            // Act
+            var result = await _client.GetMovieDetailsAsync(movieId);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(1, result.id);
+            Assert.Equal("Inception", result.title);
+            Assert.Equal("2010-07-16", result.release_date);
+        }
+
+        // Additional test methods can be added here.
     }
 }
