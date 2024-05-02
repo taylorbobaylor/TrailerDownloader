@@ -39,7 +39,7 @@ public class TMDBClient
         try
         {
             var configUrl = ConstructUrlWithApiKey("configuration");
-            return await configUrl.GetJsonAsync();
+            return await configUrl.GetJsonAsync<dynamic>();
         }
         catch (FlurlHttpException ex)
         {
@@ -59,7 +59,7 @@ public class TMDBClient
         try
         {
             var searchUrl = ConstructUrlWithApiKey("search/movie").SetQueryParam("query", query);
-            return await searchUrl.GetJsonAsync();
+            return await searchUrl.GetJsonAsync<dynamic>();
         }
         catch (FlurlHttpException ex)
         {
@@ -79,7 +79,7 @@ public class TMDBClient
         try
         {
             var detailsUrl = ConstructUrlWithApiKey($"movie/{movieId}");
-            return await detailsUrl.GetJsonAsync();
+            return await detailsUrl.GetJsonAsync<dynamic>();
         }
         catch (FlurlHttpException ex)
         {
