@@ -1,8 +1,8 @@
-﻿namespace TrailerDownloader.Models
+namespace TrailerDownloader.Models
 {
     public class Config
     {
-        public string MediaDirectory { get; set; }
-        public string TrailerLanguage { get; set; }
+        public string MediaDirectory { get; set; } = string.Empty;
+        public string TrailerLanguage { get; set; } = "en";
     }
 }

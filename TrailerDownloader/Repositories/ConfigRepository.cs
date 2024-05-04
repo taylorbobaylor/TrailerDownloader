@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json;
 using System.IO;
+using System.Text.Json;
 using TrailerDownloader.Models;
 
 namespace TrailerDownloader.Repositories
@@ -13,7 +13,7 @@ namespace TrailerDownloader.Repositories
             if (File.Exists(_configPath))
             {
                 string json = File.ReadAllText(_configPath);
-                return JsonConvert.DeserializeObject<Config>(json);
+                return JsonSerializer.Deserialize<Config>(json);
             }
 
             return null;
@@ -26,7 +26,8 @@ namespace TrailerDownloader.Repositories
                 return false;
             }
 
-            File.WriteAllText(_configPath, JsonConvert.SerializeObject(configs));
+            string json = JsonSerializer.Serialize(configs, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(_configPath, json);
             return true;
         }
     }

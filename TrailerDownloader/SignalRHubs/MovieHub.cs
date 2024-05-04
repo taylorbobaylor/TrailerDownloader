@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,6 +11,7 @@ using TrailerDownloader.Models;
 using TrailerDownloader.Repositories;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
+using System.Text.Json;
 
 namespace TrailerDownloader.SignalRHubs;
 
@@ -40,7 +39,11 @@ public class MovieHub : Hub, ITrailerRepository
         if (File.Exists(_configPath))
         {
             string jsonConfig = File.ReadAllText(_configPath);
-            Config config = JsonConvert.DeserializeObject<Config>(jsonConfig);
+            Config config = JsonSerializer.Deserialize<Config>(jsonConfig);
+            if (config == null || string.IsNullOrEmpty(config.MediaDirectory) || string.IsNullOrEmpty(config.TrailerLanguage))
+            {
+                throw new InvalidOperationException("Configuration is missing or incomplete.");
+            }
             _mainMovieDirectory = config.MediaDirectory;
             _trailerLanguage = config.TrailerLanguage;
         }
@@ -69,7 +72,10 @@ public class MovieHub : Hub, ITrailerRepository
                 }
                 else
                 {
-                    taskList.Add(GetMovieInfoAsync(movie));
+                    if (movie != null)
+                    {
+                        taskList.Add(GetMovieInfoAsync(movie));
+                    }
                 }
             }
         }
@@ -148,7 +154,7 @@ public class MovieHub : Hub, ITrailerRepository
     {
         foreach (Movie movie in movieList.OrderBy(movie => movie.Title))
         {
-            if (movie.TrailerExists == false && string.IsNullOrEmpty(movie.TrailerURL) == false)
+            if (movie != null && !movie.TrailerExists && !string.IsNullOrEmpty(movie.TrailerURL))
             {
                 if (DownloadTrailerAsync(movie).Result)
                 {
@@ -165,7 +171,7 @@ public class MovieHub : Hub, ITrailerRepository
     {
         ParallelLoopResult result = Parallel.ForEach(movieList, async movie =>
         {
-            if (movie.TrailerExists)
+            if (movie != null && movie.TrailerExists)
             {
                 string filePath = Directory.GetFiles(movie.FilePath).Where(name => name.Contains("-trailer")).FirstOrDefault();
                 File.Delete(filePath);
@@ -217,18 +223,19 @@ public class MovieHub : Hub, ITrailerRepository
 
             if (response.IsSuccessStatusCode)
             {
-                JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
-                JToken singleResult = results.FirstOrDefault(j => j.Value<string>("title") == movie.Title);
+                JsonDocument jsonDocument = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                JsonElement results = jsonDocument.RootElement.GetProperty("results");
+                JsonElement singleResult = results.EnumerateArray().FirstOrDefault(j => j.GetProperty("title").GetString() == movie.Title);
 
-                if (singleResult != null)
+                if (!singleResult.Equals(default(JsonElement)))
                 {
-                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{singleResult.Value<string>("poster_path")}";
-                    movie.Id = singleResult.Value<int>("id");
+                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{singleResult.GetProperty("poster_path").GetString()}";
+                    movie.Id = singleResult.GetProperty("id").GetInt32();
                 }
-                else if (results != null)
+                else if (results.ValueKind != JsonValueKind.Undefined)
                 {
-                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{results.First?.Value<string>("poster_path")}";
-                    movie.Id = results.First?.Value<int>("id");
+                    movie.PosterPath = $"https://image.tmdb.org/t/p/w500/{results[0].GetProperty("poster_path").GetString()}";
+                    movie.Id = results[0].GetProperty("id").GetInt32();
                 }
 
                 movie.TrailerURL = await GetTrailerURL(movie.Id);
@@ -238,7 +245,7 @@ public class MovieHub : Hub, ITrailerRepository
                 {
                     _movieDictionary.TryAdd(movie.FilePath, movie);
                 }
-                
+
                 return movie;
             }
 
@@ -261,16 +268,17 @@ public class MovieHub : Hub, ITrailerRepository
             HttpResponseMessage response = await httpClient.GetAsync(new Uri(uri));
             if (response.IsSuccessStatusCode)
             {
-                JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
-                if (results.Count() != 0)
+                JsonDocument jsonDocument = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                JsonElement results = jsonDocument.RootElement.GetProperty("results");
+                if (results.GetArrayLength() != 0)
                 {
-                    foreach (JToken result in results)
+                    foreach (JsonElement result in results.EnumerateArray())
                     {
-                        if (result.Value<string>("site") == "YouTube")
+                        if (result.GetProperty("site").GetString() == "YouTube")
                         {
-                            if (result.Value<string>("type") == "Trailer")
+                            if (result.GetProperty("type").GetString() == "Trailer")
                             {
-                                return result.Value<string>("key");
+                                return result.GetProperty("key").GetString();
                             }
                         }
                     }

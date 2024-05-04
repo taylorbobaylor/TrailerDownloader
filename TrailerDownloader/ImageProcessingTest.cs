@@ -1,5 +1,6 @@
 using System;
-using System.Drawing;
+using Emgu.CV;
+using Emgu.CV.Structure;
 using System.IO;
 
 namespace TrailerDownloader
@@ -9,29 +10,22 @@ namespace TrailerDownloader
         public static void RunTest()
         {
             string imagePath = "test_image.png";
-            using (var bitmap = new Bitmap(200, 100))
-            using (var graphics = Graphics.FromImage(bitmap))
+            using (var image = new Image<Bgr, byte>(200, 100))
             {
                 // Fill the background with white color
-                graphics.FillRectangle(Brushes.White, 0, 0, bitmap.Width, bitmap.Height);
+                image.SetValue(new Bgr(255, 255, 255));
 
                 // Create a font and brush for drawing
-                using (var font = new Font("Arial", 20))
-                using (var brush = new SolidBrush(Color.Black))
-                {
-                    // Set the string format
-                    var format = new StringFormat
-                    {
-                        Alignment = StringAlignment.Center,
-                        LineAlignment = StringAlignment.Center
-                    };
-
-                    // Draw the text in the center of the image
-                    graphics.DrawString("Test Image", font, brush, new RectangleF(0, 0, bitmap.Width, bitmap.Height), format);
-                }
+                CvInvoke.PutText(
+                    image,
+                    "Test Image",
+                    new System.Drawing.Point(image.Width / 2, image.Height / 2),
+                    Emgu.CV.CvEnum.FontFace.HersheyDuplex,
+                    1.0,
+                    new Bgr(0, 0, 0).MCvScalar);
 
                 // Save the image to the file system
-                bitmap.Save(imagePath, System.Drawing.Imaging.ImageFormat.Png);
+                image.Save(imagePath);
             }
 
             Console.WriteLine($"Test image saved to {imagePath}");
