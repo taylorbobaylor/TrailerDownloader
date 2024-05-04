@@ -8,6 +8,9 @@ namespace TrailerDownloader
     {
         public static void Main(string[] args)
         {
+            // Run the image processing test
+            ImageProcessingTest.RunTest();
+
             CreateHostBuilder(args).Build().Run();
         }
 
