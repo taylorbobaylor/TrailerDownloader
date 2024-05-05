@@ -11,6 +11,6 @@ namespace TrailerDownloader.Data
         }
 
         public DbSet<Movie> Movies { get; set; }
-        // Add DbSet<Config> if Config is an entity that should be included in the DbContext
+        public DbSet<Config> Configs { get; set; }
     }
 }

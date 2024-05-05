@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using TrailerDownloader.Models;
-using TrailerDownloader.Repositories;
+using TrailerDownloader.Data;
 
 namespace TrailerDownloader.Controllers
 {
@@ -8,25 +8,32 @@ namespace TrailerDownloader.Controllers
     [ApiController]
     public class ConfigController : ControllerBase
     {
-        private readonly IConfigRepository _configRepository;
+        private readonly ApplicationDbContext _context;
 
-        public ConfigController(IConfigRepository configRepository)
+        public ConfigController(ApplicationDbContext context)
         {
-            _configRepository = configRepository;
+            _context = context;
         }
 
         // GET: api/<ConfigController>
         [HttpGet]
         public IActionResult Get()
         {
-            return Ok(_configRepository.GetConfig());
+            var config = _context.Configs.FirstOrDefault();
+            if (config == null)
+            {
+                return NotFound("Configuration not found.");
+            }
+            return Ok(config);
         }
 
         // POST api/<ConfigController>
         [HttpPost]
         public IActionResult Post(Config configs)
         {
-            return Ok(_configRepository.SaveConfig(configs));
+            _context.Configs.Add(configs);
+            _context.SaveChanges();
+            return CreatedAtAction(nameof(Get), new { id = configs.Id }, configs);
         }
     }
 }
