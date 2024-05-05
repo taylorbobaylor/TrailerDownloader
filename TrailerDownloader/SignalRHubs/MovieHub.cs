@@ -13,6 +13,7 @@ using TrailerDownloader.Models;
 using TrailerDownloader.Repositories;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
+using TrailerDownloader.Data;
 
 namespace TrailerDownloader.SignalRHubs;
 
@@ -21,6 +22,7 @@ public class MovieHub : Hub, ITrailerRepository
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<MovieHub> _logger;
     private static IHubContext<MovieHub> _hubContext;
+    private readonly ApplicationDbContext _context;
     private static readonly Dictionary<string, Movie> _movieDictionary = new();
 
     private static readonly string _apiKey = "e438e2812f17faa299396505f2b375bb";
@@ -31,11 +33,12 @@ public class MovieHub : Hub, ITrailerRepository
     private static readonly List<string> _movieDirectories = new List<string>();
     private object _lock = new();
 
-    public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger, IHubContext<MovieHub> hubContext)
+    public MovieHub(IHttpClientFactory httpClientFactory, ILogger<MovieHub> logger, IHubContext<MovieHub> hubContext, ApplicationDbContext context)
     {
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
+        _context = context ?? throw new ArgumentNullException(nameof(context));
 
         if (File.Exists(_configPath))
         {
@@ -238,7 +241,7 @@ public class MovieHub : Hub, ITrailerRepository
                 {
                     _movieDictionary.TryAdd(movie.FilePath, movie);
                 }
-                
+
                 return movie;
             }
 
