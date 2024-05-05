@@ -5,8 +5,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
+using TrailerDownloader.Data;
 using TrailerDownloader.Repositories;
 using TrailerDownloader.SignalRHubs;
+using Microsoft.EntityFrameworkCore;
 
 namespace TrailerDownloader
 {
@@ -40,6 +42,10 @@ namespace TrailerDownloader
             {
                 configuration.RootPath = "ClientApp/dist";
             });
+
+            // Configure Entity Framework Core to use SQL Server
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
             services.AddScoped<IConfigRepository, ConfigRepository>();
             services.AddScoped<ITrailerRepository, MovieHub>();
