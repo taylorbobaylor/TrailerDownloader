@@ -39,10 +39,17 @@ public class MovieHub : Hub, ITrailerRepository
 
         if (File.Exists(_configPath))
         {
-            string jsonConfig = File.ReadAllText(_configPath);
-            Config config = JsonConvert.DeserializeObject<Config>(jsonConfig);
-            _mainMovieDirectory = config.MediaDirectory;
-            _trailerLanguage = config.TrailerLanguage;
+            try
+            {
+                string jsonConfig = File.ReadAllText(_configPath);
+                Config config = JsonConvert.DeserializeObject<Config>(jsonConfig);
+                _mainMovieDirectory = config.MediaDirectory;
+                _trailerLanguage = config.TrailerLanguage;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading or deserializing config file at {ConfigPath}", _configPath);
+            }
         }
     }
 
@@ -118,7 +125,7 @@ public class MovieHub : Hub, ITrailerRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in GetMovieDirectories()");
+            _logger.LogError(ex, "Error in GetMovieDirectories() for directory path {DirectoryPath}", directoryPath);
         }
     }
 
@@ -185,6 +192,13 @@ public class MovieHub : Hub, ITrailerRepository
             YoutubeClient youtube = new YoutubeClient();
             StreamManifest streamManifest = await youtube.Videos.Streams.GetManifestAsync(movie.TrailerURL);
 
+            // Ensure the stream collection is not empty
+            if (!streamManifest.GetMuxedStreams().Any())
+            {
+                _logger.LogError($"No streams available for {movie.Title}");
+                return false;
+            }
+
             // Get highest quality muxed stream
             IVideoStreamInfo streamInfo = streamManifest.GetMuxedStreams().GetWithHighestVideoQuality();
 
@@ -200,7 +214,7 @@ public class MovieHub : Hub, ITrailerRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error downloading trailer for {movie.Title}\n{ex.Message}");
+            _logger.LogError(ex, "Error downloading trailer for {MovieTitle}", movie.Title);
             await _hubContext.Clients.All.SendAsync("downloadAllTrailers", movie);
             return false;
         }
@@ -246,7 +260,7 @@ public class MovieHub : Hub, ITrailerRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error getting movie info for {movie.Title}\n{ex.Message}");
+            _logger.LogError(ex, "Error getting movie info for {MovieTitle}", movie.Title);
             return null;
         }
     }
@@ -255,26 +269,33 @@ public class MovieHub : Hub, ITrailerRepository
     {
         if (id != null)
         {
-            HttpClient httpClient = _httpClientFactory.CreateClient();
-            string uri = $"https://api.themoviedb.org/3/movie/{id}/videos?api_key={_apiKey}&language={_trailerLanguage}";
-
-            HttpResponseMessage response = await httpClient.GetAsync(new Uri(uri));
-            if (response.IsSuccessStatusCode)
+            try
             {
-                JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
-                if (results.Count() != 0)
+                HttpClient httpClient = _httpClientFactory.CreateClient();
+                string uri = $"https://api.themoviedb.org/3/movie/{id}/videos?api_key={_apiKey}&language={_trailerLanguage}";
+
+                HttpResponseMessage response = await httpClient.GetAsync(new Uri(uri));
+                if (response.IsSuccessStatusCode)
                 {
-                    foreach (JToken result in results)
+                    JToken results = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync()).GetValue("results");
+                    if (results.Count() != 0)
                     {
-                        if (result.Value<string>("site") == "YouTube")
+                        foreach (JToken result in results)
                         {
-                            if (result.Value<string>("type") == "Trailer")
+                            if (result.Value<string>("site") == "YouTube")
                             {
-                                return result.Value<string>("key");
+                                if (result.Value<string>("type") == "Trailer")
+                                {
+                                    return result.Value<string>("key");
+                                }
                             }
                         }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting trailer URL for movie ID {MovieId}", id);
             }
         }
 
