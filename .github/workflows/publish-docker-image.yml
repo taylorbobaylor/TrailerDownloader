@@ -31,6 +31,6 @@ jobs:
             context: .
             push: true
             tags: taylorbobaylor/movie-trailer-downloader:latest
-            platforms: linux/amd64,linux/arm64
+            platforms: linux/amd64
             cache-from: type=gha
             cache-to: type=gha,mode=max
