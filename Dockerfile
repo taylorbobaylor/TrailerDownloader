@@ -5,11 +5,12 @@ EXPOSE 80
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
-# Install Node.js
+# Install Node.js and ffmpeg
 # Note: Consider using a specific version of Node.js for better stability and compatibility
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y \
         nodejs \
+        ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 ARG BUILD_CONFIGURATION=Release
