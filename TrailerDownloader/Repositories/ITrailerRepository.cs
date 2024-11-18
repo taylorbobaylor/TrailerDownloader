@@ -7,7 +7,7 @@ namespace TrailerDownloader.Repositories
     public interface ITrailerRepository
     {
         Task GetAllMoviesInfo();
-        void DownloadAllTrailers(IEnumerable<Movie> movieList);
+        Task DownloadAllTrailers(IEnumerable<Movie> movieList);
         bool DeleteAllTrailers(IEnumerable<Movie> movieList);
     }
 }

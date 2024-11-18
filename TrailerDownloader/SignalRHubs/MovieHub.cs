@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using TrailerDownloader.Models;
 using TrailerDownloader.Repositories;
 using YoutubeExplode;
-using YoutubeExplode.Videos.Streams;
+using YoutubeExplode.Converter;
 
 namespace TrailerDownloader.SignalRHubs;
 
@@ -151,7 +151,7 @@ public class MovieHub : Hub, ITrailerRepository
         };
     }
 
-    public async void DownloadAllTrailers(IEnumerable<Movie> movieList)
+    public async Task DownloadAllTrailers(IEnumerable<Movie> movieList)
     {
         foreach (Movie movie in movieList.OrderBy(movie => movie.Title))
         {
@@ -189,28 +189,14 @@ public class MovieHub : Hub, ITrailerRepository
     {
         try
         {
-            YoutubeClient youtube = new YoutubeClient();
-            StreamManifest streamManifest = await youtube.Videos.Streams.GetManifestAsync(movie.TrailerURL);
+            var youtube = new YoutubeClient();
+            var videoUrl = movie.TrailerURL;
+            var outputFilePath = Path.Combine(movie.FilePath, $"{movie.Title} ({movie.Year})-trailer.mp4");
 
-            // Ensure the stream collection is not empty
-            if (!streamManifest.GetMuxedStreams().Any())
-            {
-                _logger.LogError($"No streams available for {movie.Title}");
-                return false;
-            }
+            await youtube.Videos.DownloadAsync(videoUrl, outputFilePath);
 
-            // Get highest quality muxed stream
-            IVideoStreamInfo streamInfo = streamManifest.GetMuxedStreams().GetWithHighestVideoQuality();
-
-            if (streamInfo != null)
-            {
-                // Download the stream to file
-                await youtube.Videos.Streams.DownloadAsync(streamInfo, Path.Combine(movie.FilePath, $"{movie.Title} ({movie.Year})-trailer.{streamInfo.Container}"));
-                _logger.LogInformation($"Successfully downloaded trailer for {movie.Title}");
-                return true;
-            }
-
-            return false;
+            _logger.LogInformation("Successfully downloaded trailer for {MovieTitle}", movie.Title);
+            return true;
         }
         catch (Exception ex)
         {
