@@ -1,10 +1,13 @@
-
 <Project Sdk="Microsoft.NET.Sdk.Web">
-  <!-- ...existing code... -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="YoutubeExplode" Version="6.4.4" />
     <PackageReference Include="YoutubeExplode.Converter" Version="6.4.4" />
   </ItemGroup>
-  <!-- ...existing code... -->
 </Project>
