@@ -37,7 +37,8 @@ public class MovieService(
             var enrichedMovie = tmdbResult.Value! with
             {
                 Id = Guid.NewGuid(),
-                FilePath = movie.FilePath
+                FilePath = movie.FilePath,
+                TmdbId = movie.TmdbId
             };
 
             _movies.Add(enrichedMovie);
@@ -58,7 +59,7 @@ public class MovieService(
             if (movie is null)
                 return Result<bool>.Failure($"Movie with ID {movieId} not found");
 
-            var trailerUrl = await tmdbService.GetMovieTrailerUrlAsync(movieId);
+            var trailerUrl = await tmdbService.GetMovieTrailerUrlAsync(movie.TmdbId);
             if (!trailerUrl.IsSuccess)
                 return Result<bool>.Failure(trailerUrl.Error!);
 

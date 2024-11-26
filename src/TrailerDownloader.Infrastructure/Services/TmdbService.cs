@@ -26,6 +26,7 @@ public class TmdbService(IOptions<TmdbOptions> options) : ITmdbService
                 Id = Guid.NewGuid(),
                 Title = movie.Title,
                 Year = movie.ReleaseDate?.Year ?? year,
+                TmdbId = movie.Id,
                 PosterPath = movie.PosterPath
             });
         }
