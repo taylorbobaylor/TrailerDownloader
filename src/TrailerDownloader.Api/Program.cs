@@ -19,6 +19,7 @@ builder.Services.Configure<TmdbOptions>(
 builder.Services.AddScoped<ITmdbService, TmdbService>();
 builder.Services.AddScoped<IYoutubeService, YoutubeService>();
 builder.Services.AddScoped<IMovieService, MovieService>();
+builder.Services.AddScoped<IUserPreferencesService, UserPreferencesService>();
 
 // Configure Serilog
 builder.Host.UseSerilog((context, config) =>

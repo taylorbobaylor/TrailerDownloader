@@ -9,6 +9,7 @@ using TrailerDownloader.Domain.Models;
 public class MovieService(
     ITmdbService tmdbService,
     IYoutubeService youtubeService,
+    IUserPreferencesService userPreferencesService,
     ILogger<MovieService> logger) : IMovieService
 {
     private readonly List<Movie> _movies = [];  // Temporary in-memory storage
@@ -84,14 +85,17 @@ public class MovieService(
     {
         try
         {
-            var movieExtensions = new[] { ".mp4", ".mkv", ".avi" };
-            var moviePattern = @"^(.+?)(?:\s*\((\d{4})\))?\s*\.[^.]+$";
-            var directories = new[] { "/movies" }; // TODO: Get from UserPreferences
+            var preferencesResult = await userPreferencesService.GetUserPreferencesAsync();
+            if (!preferencesResult.IsSuccess)
+                return Result<bool>.Failure(preferencesResult.Error!);
 
-            foreach (var directory in directories)
+            var preferences = preferencesResult.Value!;
+            var moviePattern = @"^(.+?)(?:\s*\((\d{4})\))?\s*\.[^.]+$";
+
+            foreach (var directory in preferences.MediaDirectories)
             {
                 var files = Directory.GetFiles(directory, "*.*")
-                    .Where(f => movieExtensions.Contains(Path.GetExtension(f).ToLower()));
+                    .Where(f => preferences.VideoFileExtensions.Contains(Path.GetExtension(f).ToLower()));
 
                 foreach (var file in files)
                 {
