@@ -80,9 +80,54 @@ public class MovieService(
         }
     }
 
-    public Task<Result<bool>> ScanMediaDirectoriesAsync()
+    public async Task<Result<bool>> ScanMediaDirectoriesAsync()
     {
-        // TODO: Implement media directory scanning
-        return Task.FromResult(Result<bool>.Success(true));
+        try
+        {
+            var movieExtensions = new[] { ".mp4", ".mkv", ".avi" };
+            var moviePattern = @"^(.+?)(?:\s*\((\d{4})\))?\s*\.[^.]+$";
+            var directories = new[] { "/movies" }; // TODO: Get from UserPreferences
+
+            foreach (var directory in directories)
+            {
+                var files = Directory.GetFiles(directory, "*.*")
+                    .Where(f => movieExtensions.Contains(Path.GetExtension(f).ToLower()));
+
+                foreach (var file in files)
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(
+                        Path.GetFileNameWithoutExtension(file),
+                        moviePattern);
+
+                    if (!match.Success) continue;
+
+                    var title = match.Groups[1].Value.Trim();
+                    var year = match.Groups[2].Success
+                        ? int.Parse(match.Groups[2].Value)
+                        : DateTime.Now.Year;
+
+                    var tmdbResult = await tmdbService.GetMovieDetailsAsync(title, year);
+                    if (!tmdbResult.IsSuccess) continue;
+
+                    var movie = tmdbResult.Value! with
+                    {
+                        FilePath = file,
+                        TrailerExists = false
+                    };
+
+                    if (!_movies.Any(m => m.TmdbId == movie.TmdbId))
+                    {
+                        _movies.Add(movie);
+                    }
+                }
+            }
+
+            return Result<bool>.Success(true);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error scanning media directories");
+            return Result<bool>.Failure($"Error scanning media directories: {ex.Message}");
+        }
     }
 }
